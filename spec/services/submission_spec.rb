@@ -44,6 +44,18 @@ RSpec.describe Judge::Submission do
     expect(attempt.passed_cases).to eq(1)
   end
 
+  [ Errno::EACCES, ThreadError ].each do |error_class|
+    it "saves Judge Unavailable when the runner raises #{error_class}" do
+      allow(runner).to receive(:call).and_raise(error_class, "execution unavailable")
+
+      expect(described_class.new(runner: runner).call(attempt)).to equal(attempt)
+      expect(attempt.reload.judge_result).to eq("Judge Unavailable")
+      expect(attempt.error_message).to eq("The Ruby judge is unavailable. Your code was saved; please try again later.")
+      expect(attempt.passed_cases).to eq(0)
+      expect(attempt.total_cases).to eq(problem.test_cases.count)
+    end
+  end
+
   it "rejects an unfinished problem before execution" do
     problem.test_cases.limit(problem.test_cases.count - 4).destroy_all
     expect(runner).not_to receive(:call)

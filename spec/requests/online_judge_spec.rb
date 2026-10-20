@@ -72,4 +72,40 @@ RSpec.describe "Online Judge requests", type: :request do
     expect(response.body).to include("def contains_duplicate(nums)")
     expect(response.body).not_to include(problem.starter_code)
   end
+
+  it "saves Judge Unavailable when the judge process cannot start" do
+    sign_in(user)
+    problem = Problem.find_by!(slug: "contains-duplicate")
+    command = instance_double(Judge::Command)
+    allow(command).to receive(:call).and_raise(Errno::EACCES, "docker")
+    allow(Judge::Command).to receive(:new).and_return(command)
+
+    expect do
+      post problem_attempts_path(problem), params: {
+        attempt: { code: RubySolutions::CORRECT.fetch(problem.slug), language: "ruby" }
+      }
+    end.to change(Attempt, :count).by(1)
+
+    attempt = Attempt.order(:id).last
+    expect(response).to redirect_to(attempt_path(attempt))
+    expect(attempt.reload.judge_result).to eq("Judge Unavailable")
+    expect(attempt.error_message).to eq("The Ruby judge is unavailable. Your code was saved; please try again later.")
+    follow_redirect!
+    expect(response.body).to include("Judge Unavailable")
+  end
+
+  it "shows submission times in the application time zone" do
+    sign_in(user)
+    problem = Problem.find_by!(slug: "contains-duplicate")
+
+    travel_to(Time.utc(2026, 10, 20, 20)) do
+      attempt = user.practice_sessions.create!(problem: problem, started_at: Time.current)
+        .attempts.create!(code: RubySolutions::CORRECT.fetch(problem.slug), language: "ruby")
+
+      get attempt_path(attempt)
+      expect(response.body).to include("2026-10-20 15:00 CDT")
+      get attempts_path
+      expect(response.body).to include("2026-10-20 15:00 CDT")
+    end
+  end
 end

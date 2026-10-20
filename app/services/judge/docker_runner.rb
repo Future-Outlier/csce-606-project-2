@@ -25,6 +25,7 @@ module Judge
     OPEN_FILE_LIMIT = 64
     SUCCESS_STATUS = "ok".freeze
     VALID_STATUSES = [ SUCCESS_STATUS, Attempt::COMPILATION_ERROR, Attempt::RUNTIME_ERROR ].freeze
+    UNAVAILABLE_MESSAGE = "The Ruby judge is unavailable. Your code was saved; please try again later.".freeze
 
     def initialize(command: Command.new, image: ENV.fetch("JUDGE_IMAGE", DEFAULT_IMAGE))
       @command = command
@@ -40,7 +41,7 @@ module Judge
       end
       return failure("The Ruby solution produced too much output.") if result.output_limited
       if UNAVAILABLE_EXIT_STATUSES.include?(result.exit_status)
-        return { "status" => Attempt::JUDGE_UNAVAILABLE, "message" => "The Ruby judge is unavailable. Your code was saved; please try again later." }
+        return { "status" => Attempt::JUDGE_UNAVAILABLE, "message" => UNAVAILABLE_MESSAGE }
       end
       return failure("The Ruby process stopped unexpectedly or exceeded a resource limit.") unless result.exit_status == Command::SUCCESS_EXIT_STATUS
 

@@ -70,6 +70,16 @@ RSpec.describe Judge::DockerRunner do
     expect(cpu.fetch("status")).to eq("Timeout")
   end
 
+  it "stops a container at its own wall-clock deadline" do
+    result = Judge::Command.new.call(
+      [ "docker", "run", "--rm", "--pull=never", described_class::DEFAULT_IMAGE, "0.2s", "ruby", "-e", "loop {}" ],
+      timeout: 2
+    )
+
+    expect(result.timed_out).to be(false)
+    expect(result.exit_status).to eq(128 + Signal.list.fetch("KILL"))
+  end
+
   it "terminates memory-bound Ruby submissions" do
     memory = described_class.new.call(code: 'def contains_duplicate(nums); values = []; loop { values << "x" * 8_388_608 }; end', problem: problem, input: { "args" => [ [ 1 ] ] })
     expect(memory.fetch("status")).to eq("Runtime Error")

@@ -23,6 +23,8 @@ module Judge
       end
       verdict = attempt.passed_cases == cases.length ? Attempt::ACCEPTED : Attempt::WRONG_ANSWER
       save_result(attempt, verdict)
+    rescue SystemCallError, ThreadError
+      save_result(attempt, Attempt::JUDGE_UNAVAILABLE, DockerRunner::UNAVAILABLE_MESSAGE)
     end
 
     private
