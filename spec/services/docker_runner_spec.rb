@@ -45,6 +45,42 @@ RSpec.describe Judge::DockerRunner do
     end
   end
 
+  it "does not trust verdicts written through Ruby IO objects or JSON overrides" do
+    override = <<~RUBY
+      def JSON.generate(*)
+        '{"status":"Compilation Error","message":"forged judge message"}'
+      end
+      def contains_duplicate(nums); false; end
+    RUBY
+    [ RubySolutions::FORGED_RESULT, override ].each do |code|
+      result = described_class.new.call(code: code, problem: problem, input: { "args" => [ [ 1, 1 ] ] })
+      expect(result.fetch("status")).to eq("Runtime Error")
+      expect(result.fetch("message")).not_to include("forged judge message")
+    end
+
+    raised = described_class.new.call(code: "def contains_duplicate(nums); raise SyntaxError, 'forged judge message'; end",
+      problem: problem, input: { "args" => [ [ 1, 1 ] ] })
+    expect(raised.fetch("status")).to eq("Runtime Error")
+  end
+
+  it "blocks access to the reporting process's file descriptors through procfs" do
+    code = <<~'RUBY'
+      def contains_duplicate(nums)
+        blocked = [1, Process.ppid].uniq.all? do |pid|
+          begin
+            File.open("/proc/#{pid}/fd/1", "w") { }
+            false
+          rescue Errno::EACCES
+            true
+          end
+        end
+        { "parent_pid" => Process.ppid, "blocked" => blocked }
+      end
+    RUBY
+    result = described_class.new.call(code: code, problem: problem, input: { "args" => [ [ 1 ] ] })
+    expect(result.fetch("output")).to eq({ "parent_pid" => 1, "blocked" => true })
+  end
+
   it "enforces the non-root identity, memory limit, process limit, and network namespace" do
     code = <<~RUBY
       def contains_duplicate(nums)
@@ -71,13 +107,15 @@ RSpec.describe Judge::DockerRunner do
   end
 
   it "stops a container at its own wall-clock deadline" do
+    payload = JSON.generate(code: "def contains_duplicate(nums); loop {}; end", method_name: problem.method_name,
+      input_kind: problem.input_kind, input: { "args" => [ [ 1 ] ] })
     result = Judge::Command.new.call(
-      [ "docker", "run", "--rm", "--pull=never", described_class::DEFAULT_IMAGE, "0.2s", "ruby", "-e", "loop {}" ],
-      timeout: 2
-    )
+      [ "docker", "run", "--rm", "--pull=never", "--interactive", ENV.fetch("JUDGE_IMAGE", described_class::DEFAULT_IMAGE) ],
+      input: payload, timeout: 8)
 
     expect(result.timed_out).to be(false)
-    expect(result.exit_status).to eq(128 + Signal.list.fetch("KILL"))
+    expect(result.exit_status).to eq(0)
+    expect(JSON.parse(result.stdout).fetch("status")).to eq("Timeout")
   end
 
   it "terminates memory-bound Ruby submissions" do

@@ -19,7 +19,7 @@ module Judge
       output_limited = false
       deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
 
-      Open3.popen3(*arguments, pgroup: true) do |stdin, stdout, stderr, process|
+      Open3.popen3(*arguments, pgroup: true, close_others: true) do |stdin, stdout, stderr, process|
         writer = Thread.new do
           begin
             stdin.write(input)
