@@ -46,10 +46,12 @@ RSpec.describe Judge::DockerRunner do
   end
 
   it "distinguishes submission exits from Docker startup failures" do
-    [ "exit(1)", "exit!(1)", "exit!(125)", "exit!(126)", "exit!(127)" ].each do |expression|
+    [ "exit(1)", "exit!(1)", "exit!(125)", "exit!(126)", "exit!(127)", "at_exit { exit 3 }; true" ].each do |expression|
       result = described_class.new.call(code: "def contains_duplicate(nums); #{expression}; end",
         problem: problem, input: { "args" => [ [ 1 ] ] })
-      expect(result.fetch("status")).to eq("Runtime Error"), expression
+      aggregate_failures(expression) do
+        expect(result.fetch("status")).to eq("Runtime Error")
+      end
     end
 
     result = described_class.new(image: "codecoach-missing:#{SecureRandom.uuid}").call(
