@@ -98,7 +98,13 @@ end
 Then("the page explains that only Ruby is supported") { expect(page).to have_content("only Ruby is supported") }
 
 When("I submit an empty Ruby solution") do
-  page.driver.submit(:post, problem_attempts_path(Problem.first), { attempt: { code: "", language: "ruby" } })
+  @problem = Problem.first
+  @submitted_code = ""
+  visit problem_path(@problem)
+  expect(page.find_field("Ruby source code")[:required]).to be_nil
+  fill_in "Ruby source code", with: @submitted_code
+  expect { click_button "Submit Ruby solution" }.to change(Attempt, :count).by(1)
+  @attempt = @user.attempts.order(:id).last
 end
 Then("the page explains that code is required") { expect(page).to have_content("Code can't be blank") }
 
