@@ -18,8 +18,11 @@ class RubyJudge
   RUNTIME_ERROR = "Runtime Error".freeze
   TIMEOUT = "Timeout".freeze
   ERROR_MESSAGE_LIMIT = 1000
+  DEFAULT_SIGNALS = %w[HUP INT QUIT TERM ALRM USR1 USR2].freeze
+  SYSTEM_DEFAULT_HANDLER = "SYSTEM_DEFAULT".freeze
 
   def call(payload)
+    DEFAULT_SIGNALS.each { |signal| Signal.trap(signal, SYSTEM_DEFAULT_HANDLER) }
     raise SystemCallError.new("Protect judge output", Fiddle.last_error) unless PRCTL.call(SET_DUMPABLE, DUMP_DISABLED, 0, 0, 0).zero?
 
     RubyVM::InstructionSequence.compile(payload.fetch("code"), RubySubmission::SOURCE_FILENAME)
@@ -27,7 +30,7 @@ class RubyJudge
     return failure(TIMEOUT, "The Ruby solution exceeded the execution time limit.") if execution.timed_out
     return failure(RUNTIME_ERROR, "The Ruby solution produced too much output.") if execution.output_limited
     unless execution.exit_status == Judge::Command::SUCCESS_EXIT_STATUS
-      message = execution.stderr.empty? ? "The Ruby process stopped unexpectedly or exceeded a resource limit." : execution.stderr
+      message = execution.stderr.empty? ? "The Ruby process stopped unexpectedly or exceeded a resource limit." : execution.stderr.strip
       return failure(RUNTIME_ERROR, message)
     end
 
