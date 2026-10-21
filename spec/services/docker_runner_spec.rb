@@ -45,6 +45,18 @@ RSpec.describe Judge::DockerRunner do
     end
   end
 
+  it "distinguishes submission exits from Docker startup failures" do
+    [ "exit(1)", "exit!(1)", "exit!(125)", "exit!(126)", "exit!(127)" ].each do |expression|
+      result = described_class.new.call(code: "def contains_duplicate(nums); #{expression}; end",
+        problem: problem, input: { "args" => [ [ 1 ] ] })
+      expect(result.fetch("status")).to eq("Runtime Error"), expression
+    end
+
+    result = described_class.new(image: "codecoach-missing:#{SecureRandom.uuid}").call(
+      code: "def contains_duplicate(nums); false; end", problem: problem, input: { "args" => [ [ 1 ] ] })
+    expect(result.fetch("status")).to eq("Judge Unavailable")
+  end
+
   it "enforces the non-root identity, memory limit, process limit, and network namespace" do
     code = <<~RUBY
       def contains_duplicate(nums)
