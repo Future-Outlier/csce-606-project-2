@@ -13,3 +13,5 @@
 1. Clone this repository.
 2. Start Docker.
 3. Run `make run` from the project directory to start local development.
+
+Blank submissions remain in history; retrying them restores the starter code.

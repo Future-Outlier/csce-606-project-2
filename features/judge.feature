@@ -58,6 +58,7 @@ Feature: US7 — Online Judge & Error Recovery
     Then I see the "Runtime Error" verdict and a passed-case count
     And the page explains that code is required
     And my submitted code is preserved in my personal history
+    And I can retry with the problem's starter code
 
   Scenario: Do not judge a problem with too few cases
     Given I am signed in as a "Free" member

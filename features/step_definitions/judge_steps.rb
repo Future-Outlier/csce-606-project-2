@@ -108,6 +108,12 @@ When("I submit an empty Ruby solution") do
 end
 Then("the page explains that code is required") { expect(page).to have_content("Code can't be blank") }
 
+Then("I can retry with the problem's starter code") do
+  click_link "Try this problem again"
+  expect(page).to have_field("Ruby source code", with: @problem.starter_code)
+  expect(@attempt.reload.code).to eq("")
+end
+
 Given("a problem has fewer than five predefined cases") do
   @problem = Problem.first
   @problem.test_cases.limit(@problem.test_cases.count - 4).destroy_all
