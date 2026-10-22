@@ -3,6 +3,25 @@ require "rails_helper"
 RSpec.describe JudgeSubmissionJob do
   before { seed_judge }
 
+  it "retries database errors when loading an attempt but discards a deleted attempt" do
+    attempt = create_user.practice_sessions.for_today(Problem.first).attempts.create!(code: "saved source", language: "ruby")
+    job = described_class.new(attempt)
+    ActiveJob::QueueAdapters.lookup(:delayed_job).new.enqueue(job)
+    queued = Delayed::Job.find(job.provider_job_id)
+    worker = Delayed::Worker.new(queues: [ "judge" ])
+    allow(GlobalID::Locator).to receive(:locate).and_raise(ActiveRecord::ConnectionNotEstablished, "database unavailable")
+
+    expect(worker.work_off(1)).to eq([ 0, 1 ])
+    expect(queued.reload.attempts).to eq(1)
+    expect(attempt.reload.judge_result).to eq("Pending")
+
+    allow(GlobalID::Locator).to receive(:locate).and_call_original
+    attempt.destroy!
+    queued.update!(run_at: Time.current)
+    expect(worker.work_off(1)).to eq([ 1, 0 ])
+    expect(Delayed::Job.exists?(queued.id)).to be(false)
+  end
+
   it "preserves the code and records an unexpected job failure" do
     attempt = create_user.practice_sessions.for_today(Problem.first).attempts.create!(
       code: "saved source", language: "ruby", total_cases: 6)

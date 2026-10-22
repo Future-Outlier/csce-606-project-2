@@ -1,7 +1,9 @@
 class JudgeSubmissionJob < ApplicationJob
   queue_as :judge
 
-  discard_on ActiveJob::DeserializationError
+  discard_on ActiveJob::DeserializationError do |_, error|
+    raise error unless error.cause.is_a?(ActiveRecord::RecordNotFound)
+  end
 
   def perform(attempt)
     return unless attempt.judge_result == Attempt::PENDING
