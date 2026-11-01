@@ -9,10 +9,11 @@ on:
 permissions:
   contents: read
 
+# Ubuntu 26.04 has no prebuilt Ruby 4.0.1; keep Ruby jobs on 24.04.
 jobs:
   tests:
     name: Quality of Work
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       RAILS_ENV: test
@@ -57,7 +58,7 @@ jobs:
           retention-days: 14
 
   scan_ruby:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -75,7 +76,7 @@ jobs:
         run: bin/bundler-audit
       
   scan_js:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -90,7 +91,7 @@ jobs:
         run: bin/importmap audit
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       RUBOCOP_CACHE_ROOT: tmp/rubocop
     steps:
