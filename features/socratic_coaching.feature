@@ -8,7 +8,7 @@ Feature: US4 — Socratic Conceptual Auditing
 
   Scenario: Explaining the problem and a correct approach unlocks the editor
     Given I am signed in as a "Premium" member
-    And the coach is connected to the real AI
+    And the coach accepts my explanations
     When I open the problem "Contains Duplicate"
     Then the code editor is locked
     When I tell the coach "Given an array of integers, return true if any value appears at least twice, and false if every value is distinct."
@@ -18,7 +18,7 @@ Feature: US4 — Socratic Conceptual Auditing
 
   Scenario: A wrong approach keeps the editor locked
     Given I am signed in as a "Premium" member
-    And the coach is connected to the real AI
+    And the coach asks for clarification
     When I open the problem "Contains Duplicate"
     And I tell the coach "Given an array of integers, return true if any value appears at least twice, and false if every value is distinct."
     And I tell the coach "Sort the array in descending order and return true if the first element is positive."
@@ -27,7 +27,7 @@ Feature: US4 — Socratic Conceptual Auditing
 
   Scenario: When the coach is unavailable I keep my message and can code
     Given I am signed in as a "Premium" member
-    And the AI service rejects the coach's requests
+    And the AI service is unavailable
     When I open the problem "Contains Duplicate"
     And I tell the coach "Return true if any number appears twice in the array."
     Then I am told the coach is unavailable
