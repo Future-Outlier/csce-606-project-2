@@ -6,6 +6,10 @@
 
 - Use OpenAI API makes our life easier
 - Use of docker for consistency.
+- CI ensured good quality
+- Good feature assignment to members
+- Each person having a reviewer partner eliminated diffusion of responsibility
+
 
 
 ## What changed from initial planning?
@@ -25,3 +29,4 @@
 ## What do you think we can do better in the next sprint?
 
 - Focus on the front-end and make quality of life changes.
+- Knowing what artifacts we use for each scrum event. We figured it out.
