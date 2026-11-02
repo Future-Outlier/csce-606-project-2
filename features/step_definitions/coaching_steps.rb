@@ -1,10 +1,9 @@
-Given("the coach is connected to the real AI") do
-  use_ai_client(Ai::OpenAiClient.new(api_key: ENV.fetch("OPENAI_API_KEY")))
+Given("the coach accepts my explanations") do
+  use_ai_client(Ai::FakeClient.new(reply: { message: "That is correct. Continue.", advance: true }.to_json))
 end
 
-# A real request with a key OpenAI rejects, so the failure is genuine.
-Given("the AI service rejects the coach's requests") do
-  use_ai_client(Ai::OpenAiClient.new(api_key: "sk-invalid-key-for-testing"))
+Given("the coach asks for clarification") do
+  use_ai_client(Ai::FakeClient.new(reply: { message: "Please reconsider that explanation.", advance: false }.to_json))
 end
 
 When("I open the problem {string}") do |title|
