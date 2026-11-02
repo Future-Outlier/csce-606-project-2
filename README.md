@@ -1,24 +1,142 @@
-# README
+# Code Coach
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## Install
 
-Things you may want to cover:
+- Git
+- Ruby 4.0.1
+- Bundler 4.0.19
+- GNU Make
+- Docker Desktop (macOS or Windows) or Docker Engine (Linux)
 
-* Ruby version
+## Run
 
-* System dependencies
+1. Clone this repository.
+2. Start Docker and confirm `docker info` succeeds without `sudo`.
+   On Linux, after joining the `docker` group, run `newgrp docker` or log out
+   and back in, then retry. See [Docker permissions](#docker-permissions-on-linux).
+3. Run `make run` from the project directory to start local development.
 
-* Configuration
+For an existing database, run `bin/rails db:migrate db:seed` to install the
+roadmap's prerequisite links. Seeding preserves accounts and submissions.
 
-* Database creation
+See the [user guide](docs/user_guide.md) for roadmap states and practice, and
+[roadmap implementation](docs/roadmap.md) for model contracts and validation.
 
-* Database initialization
+## Configuration
 
-* How to run the test suite
+AI code review uses OpenAI. Set these environment variables before starting the server:
 
-* Services (job queues, cache servers, search engines, etc.)
+| Variable | Required | Purpose |
+|---|---|---|
+| `OPENAI_API_KEY` | For AI features | Your OpenAI API key. Without it, AI code review shows "AI code review is unavailable right now" instead of failing. |
+| `OPENAI_MODEL` | No | The OpenAI model to use. Defaults to `gpt-6-luna`. |
 
-* Deployment instructions
+For example:
 
-* ...
+```sh
+OPENAI_API_KEY="your-key" make run
+```
+
+Never commit the key. In production, set it in the hosting provider's environment settings. The test suites never call OpenAI, so CI does not need a key.
+
+### Premium accounts
+
+Premium is the account role that grants access to AI features. New accounts
+start as Free.
+
+#### Local grader account
+
+After completing the setup under **Run**, create a Premium demo account in the
+local development database. Run this from the project directory:
+
+```sh
+bin/rails runner -e development '
+  user = User.find_or_initialize_by(email: "grader@example.com")
+  user.update!(role: "Premium", password: "CodeCoach-Grader-2026!")
+  puts "Premium account ready: #{user.email}"
+'
+```
+
+Open <http://127.0.0.1:3000/session/new> while `make run` is running and sign in:
+
+- **Email:** `grader@example.com`
+- **Password:** `CodeCoach-Grader-2026!`
+
+These are local demo credentials. The command creates the account if missing;
+running it again restores its Premium role and demo password while preserving
+its practice history. The account is stored in the local database, so a grader
+using a fresh clone must run the command too.
+
+To try AI code review, configure `OPENAI_API_KEY` as described above, submit a
+solution, and select **Get AI code review** on the attempt page. The Premium
+role alone does not configure the AI service.
+
+#### Promote an existing account
+
+To keep your own account and password, register through the app, then run this
+with your registered email and refresh the page:
+
+```sh
+bin/rails runner -e development 'User.find_by!(email: "you@example.com").update!(role: "Premium")'
+```
+
+## Tests and quality checks
+
+Install the Ruby version in `.ruby-version` and run `bundle install`, then:
+
+```sh
+bin/judge-build
+RAILS_ENV=test bin/rails db:prepare
+export COVERAGE_ROOT="$(mktemp -d)"
+bundle exec rspec
+bundle exec cucumber --no-profile --strict
+bin/rails test
+bundle exec ruby test_support/merge_coverage.rb
+bin/rubocop --fail-level info
+```
+
+CI runs these application suites and requires separate RSpec, Cucumber, and
+combined Ruby line coverage of at least 90%, plus zero RuboCop offenses.
+Feature owners must add meaningful tests for their acceptance criteria.
+
+See [Quality checks and Definition of Done](docs/quality.md) for report
+locations, test authoring, CI activation, and the evidence requiring human review.
+
+### Docker permissions on Linux
+
+If `docker info` reports permission denied while Docker is running, add your
+user to the Docker Engine installation's `docker` group:
+
+```sh
+sudo usermod -aG docker "$USER"
+```
+
+Adding your user to the group does not update an existing shell's permissions.
+Starting or restarting Docker does not refresh them either. If you already ran
+the command above, activate the membership by running these commands one at a
+time in your terminal:
+
+```sh
+newgrp docker
+docker info
+make run
+```
+
+`newgrp docker` starts a new shell with Docker group access; run the next two
+commands in that shell. Continue to `make run` only after `docker info` succeeds.
+Run the application as your normal user, without `sudo`.
+
+Alternatively, fully log out of your desktop or SSH session and log back in,
+then run `docker info` and `make run`. Opening another terminal in the same
+login session may still inherit the old group permissions.
+
+The `docker` group grants root-level privileges. See Docker's official
+[Linux post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/).
+
+## Troubleshooting
+
+**Ruby 4.0.1 fails to install on macOS 26 with a `miniruby` segmentation fault.** This is [Ruby bug #22311](https://bugs.ruby-lang.org/issues/22311): the macOS 27 SDK declares `pipe2()` and `dup3()`, which macOS 26 does not have. Install with:
+
+```sh
+ac_cv_func_dup3=no ac_cv_func_pipe2=no rbenv install 4.0.1
+```
