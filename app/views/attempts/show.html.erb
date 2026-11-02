@@ -1,0 +1,59 @@
+<% content_for :title, "#{@attempt.judge_result} · Code Coach" %>
+<%= link_to "← My submissions", attempts_path, class: "back-link" %>
+<p class="eyebrow">SUBMISSION #<%= @attempt.id %></p><h1><%= @attempt.problem.title %></h1>
+<div class="result-card" role="status">
+  <h2><%= @attempt.judge_result %></h2>
+  <p class="case-count"><%= @attempt.passed_cases %> / <%= @attempt.total_cases %> test cases passed</p>
+  <p class="muted">Language: Ruby · <%= @attempt.created_at.strftime(ApplicationHelper::SUBMISSION_TIME_FORMAT) %></p>
+  <% if @attempt.error_message.present? %><pre class="error-detail"><%= @attempt.error_message %></pre><% end %>
+</div>
+<h2>Submitted Ruby code</h2><pre class="saved-code"><code><%= @attempt.code %></code></pre>
+<% unless current_user.premium? %><p class="muted">AI code review is available to Premium members.</p><% end %>
+<div class="attempt-actions">
+  <% if current_user.premium? && @attempt.code_review_message %>
+    <%= link_to "View AI code review", attempt_code_review_path(@attempt), class: "button" %>
+  <% elsif current_user.premium? && @attempt.code.present? %>
+    <%= button_to "Get AI code review", attempt_code_review_path(@attempt), class: "button" %>
+  <% end %>
+  <%= link_to "Try this problem again", problem_path(@attempt.problem), class: "button" %>
+</div>
+
+
+
+<% practice = @attempt.practice_session %>
+
+<% latest_attempt = practice.attempts.order(created_at: :desc, id: :desc).first %>
+<% already_rated = practice.review_scheduled_at.present? &&
+                   @attempt.created_at <= practice.review_scheduled_at %>
+<% if @attempt.id == latest_attempt&.id &&
+      [Attempt::ACCEPTED, Attempt::WRONG_ANSWER].include?(@attempt.judge_result) &&
+      !already_rated %>
+
+
+  <section aria-labelledby="review-rating-title">
+    <h2 id="review-rating-title">Complete Your Practice</h2>
+
+    <p>How well did you understand this problem?</p>
+
+    <%= form_with url: rate_practice_session_path(practice),
+                  method: :patch,
+                  local: true do |form| %>
+      <%= form.hidden_field :attempt_id, value: @attempt.id %>
+
+      <%= form.label :review_rating, "Your performance rating" %>
+
+      <%= form.select :review_rating,
+                      [
+                        ["1 - Very difficult", 1],
+                        ["2 - Difficult", 2],
+                        ["3 - Moderate", 3],
+                        ["4 - Easy", 4],
+                        ["5 - Very easy", 5]
+                      ],
+                      { prompt: "Select your rating" },
+                      { required: true } %>
+
+      <%= form.submit "Complete Practice" %>
+    <% end %>
+  </section>
+<% end %>
