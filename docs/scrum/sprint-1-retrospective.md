@@ -6,7 +6,6 @@
 
 - Use OpenAI API makes our life easier
 - Use of docker for consistency.
-- \
 
 
 ## What changed from initial planning?
