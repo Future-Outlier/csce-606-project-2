@@ -14,8 +14,12 @@ class Attempt < ApplicationRecord
   belongs_to :practice_session
   has_one :user, through: :practice_session
   has_one :problem, through: :practice_session
+  has_many :conversation_messages, dependent: :destroy
+  has_one :code_review_message, -> { where(phase: "code_review") }, class_name: "ConversationMessage"
 
-  validates :code, presence: true, length: { maximum: MAX_CODE_LENGTH }
+  before_validation { self.code = code.to_s }
+
+  validates :code, length: { maximum: MAX_CODE_LENGTH }
   validates :language, inclusion: { in: LANGUAGES, message: "must be Ruby; only Ruby is supported" }
   validates :judge_result, inclusion: { in: RESULTS }
   validates :passed_cases, :total_cases, numericality: { only_integer: true, greater_than_or_equal_to: 0 }

@@ -2,6 +2,7 @@ module Judge
   class Submission
     ERROR_MESSAGE_LIMIT = 1000
     FLOAT_TOLERANCE = 0.00001
+    BLANK_CODE_MESSAGE = "Code can't be blank.".freeze
 
     def initialize(runner: DockerRunner.new)
       @runner = runner
@@ -13,6 +14,7 @@ module Judge
       unless attempt.problem.ready_for_judging?
         return save_result(attempt, Attempt::JUDGE_UNAVAILABLE, "At least five predefined cases are required.")
       end
+      return save_result(attempt, Attempt::RUNTIME_ERROR, BLANK_CODE_MESSAGE) if attempt.code.blank?
 
       cases.each do |test_case|
         result = @runner.call(code: attempt.code, problem: attempt.problem, input: test_case.input)
@@ -29,8 +31,13 @@ module Judge
 
     private
 
+
     def save_result(attempt, verdict, message = nil)
-      attempt.update!(judge_result: verdict, error_message: message)
+      # Save the result of the student's coding attempt
+      attempt.update!(
+        judge_result: verdict,
+        error_message: message
+      )
       attempt
     end
 

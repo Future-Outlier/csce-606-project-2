@@ -19,6 +19,7 @@ RSpec.describe "Online Judge requests", type: :request do
   end
 
   it "authenticates, filters topics, and signs out without JavaScript" do
+    complete_prerequisites(user, Topic.find_by!(name: "Stack"))
     get new_session_path
     expect(response.body).to include("<h1>Sign in</h1>")
     get new_registration_path
@@ -123,6 +124,22 @@ RSpec.describe "Online Judge requests", type: :request do
       expect(attempt).to have_attributes(code: code, judge_result: "Judge Unavailable", total_cases: 6)
       follow_redirect!
       expect(response.body).to include("Your code was saved; please try again later.")
+    end
+  end
+
+  it "restores starter code after blank submissions without rewriting history" do
+    sign_in(user)
+    problem = Problem.find_by!(slug: "contains-duplicate")
+
+    [ "", " \t\n" ].each do |code|
+      post problem_attempts_path(problem), params: { attempt: { code: code, language: "ruby" } }
+      perform_enqueued_jobs
+      attempt = user.attempts.order(:id).last
+      get problem_path(problem)
+
+      expect(response.body).to include(problem.starter_code)
+      expect(attempt.reload.code).to eq(code)
+      expect(attempt.judge_result).to eq("Runtime Error")
     end
   end
 

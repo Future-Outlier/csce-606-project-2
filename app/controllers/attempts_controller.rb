@@ -1,5 +1,8 @@
 class AttemptsController < ApplicationController
+  include RoadmapAccess
+
   HISTORY_LIMIT = 100
+  COACHING_LOCKED_MESSAGE = "Explain your approach to the coach before submitting code.".freeze
 
   def index
     @attempts = current_user.attempts.includes(practice_session: :problem).order(created_at: :desc).limit(HISTORY_LIMIT)
@@ -11,6 +14,9 @@ class AttemptsController < ApplicationController
 
   def create
     @problem = Problem.includes(:test_cases).find_by!(slug: params[:problem_id])
+    return unless require_unlocked_topic(@problem.topic)
+    return redirect_to(problem_path(@problem), alert: COACHING_LOCKED_MESSAGE) if coaching_locked?
+
     @attempt = Attempt.new(params.require(:attempt).permit(:code, :language))
 
     unless @problem.ready_for_judging?
@@ -41,5 +47,12 @@ class AttemptsController < ApplicationController
     unless enqueued
       @attempt.update!(judge_result: Attempt::JUDGE_UNAVAILABLE, error_message: Judge::DockerRunner::UNAVAILABLE_MESSAGE)
     end
+  end
+
+  private
+
+  # Checked on the server so a hidden editor can't be bypassed with a direct POST.
+  def coaching_locked?
+    current_user.premium? && current_user.practice_sessions.for_today(@problem).coaching_locked?
   end
 end

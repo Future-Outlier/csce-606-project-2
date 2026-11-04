@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_22_184753) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_28_213854) do
   create_table "attempts", force: :cascade do |t|
     t.integer "practice_session_id", null: false
     t.text "code", null: false
@@ -26,6 +26,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_184753) do
     t.check_constraint "passed_cases >= 0 AND total_cases >= passed_cases", name: "attempts_case_counts"
   end
 
+  create_table "conversation_messages", force: :cascade do |t|
+    t.integer "practice_session_id", null: false
+    t.integer "attempt_id"
+    t.string "role", null: false
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "phase", default: "coaching", null: false
+    t.index ["attempt_id"], name: "index_conversation_messages_on_attempt_id"
+    t.index ["practice_session_id"], name: "index_conversation_messages_on_practice_session_id"
+  end
+
   create_table "delayed_jobs", force: :cascade do |t|
     t.integer "priority", default: 0, null: false
     t.integer "attempts", default: 0, null: false
@@ -39,6 +51,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_184753) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.index ["priority", "run_at"], name: "delayed_jobs_priority"
+
   end
 
   create_table "practice_sessions", force: :cascade do |t|
@@ -52,6 +65,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_184753) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.date "practice_date", null: false
+    t.string "coaching_state", default: "problem", null: false
+    t.string "coach_persona", default: "senior_swe", null: false
+    t.datetime "review_scheduled_at"
+    t.integer "review_base_interval_days"
     t.index ["problem_id"], name: "index_practice_sessions_on_problem_id"
     t.index ["user_id", "problem_id", "practice_date"], name: "index_practice_sessions_on_user_problem_date", unique: true
     t.index ["user_id"], name: "index_practice_sessions_on_user_id"
@@ -74,6 +91,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_184753) do
     t.index ["topic_id"], name: "index_problems_on_topic_id"
   end
 
+  create_table "review_schedules", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "problem_id", null: false
+    t.date "next_review_date", null: false
+    t.integer "interval_days", default: 1, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.date "scheduled_for"
+    t.datetime "reviewed_at"
+    t.index ["problem_id"], name: "index_review_schedules_on_problem_id"
+    t.index ["user_id", "problem_id"], name: "index_review_schedules_on_user_id_and_problem_id", unique: true
+    t.index ["user_id"], name: "index_review_schedules_on_user_id"
+    t.check_constraint "interval_days >= 1", name: "review_schedules_positive_interval"
+  end
+
   create_table "test_cases", force: :cascade do |t|
     t.integer "problem_id", null: false
     t.json "input", null: false
@@ -84,6 +116,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_184753) do
     t.datetime "updated_at", null: false
     t.index ["problem_id", "position"], name: "index_test_cases_on_problem_id_and_position", unique: true
     t.index ["problem_id"], name: "index_test_cases_on_problem_id"
+  end
+
+  create_table "topic_prerequisites", force: :cascade do |t|
+    t.integer "topic_id", null: false
+    t.integer "prerequisite_topic_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["prerequisite_topic_id"], name: "index_topic_prerequisites_on_prerequisite_topic_id"
+    t.index ["topic_id", "prerequisite_topic_id"], name: "idx_on_topic_id_prerequisite_topic_id_1515a7b7d6", unique: true
+    t.index ["topic_id"], name: "index_topic_prerequisites_on_topic_id"
+    t.check_constraint "topic_id != prerequisite_topic_id", name: "topics_cannot_require_themselves"
   end
 
   create_table "topics", force: :cascade do |t|
@@ -104,8 +147,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_184753) do
   end
 
   add_foreign_key "attempts", "practice_sessions"
+  add_foreign_key "conversation_messages", "attempts"
+  add_foreign_key "conversation_messages", "practice_sessions"
   add_foreign_key "practice_sessions", "problems"
   add_foreign_key "practice_sessions", "users"
   add_foreign_key "problems", "topics"
+  add_foreign_key "review_schedules", "problems"
+  add_foreign_key "review_schedules", "users"
   add_foreign_key "test_cases", "problems"
+  add_foreign_key "topic_prerequisites", "topics"
+  add_foreign_key "topic_prerequisites", "topics", column: "prerequisite_topic_id"
 end
