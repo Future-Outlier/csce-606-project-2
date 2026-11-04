@@ -7,6 +7,59 @@ RSpec.describe "Online Judge requests", type: :request do
   before { seed_judge }
   let(:user) { create_user }
 
+  it "rejects a full shared queue without saving or enqueueing the new source" do
+    stub_const("Judge::Queue::MAX_PENDING", 2)
+    problem = Problem.first
+    other = create_user(email: "other@example.com")
+    session = other.practice_sessions.for_today(problem)
+    session.attempts.create!(code: "private source", language: "ruby", total_cases: 6,
+      judging_started_at: 10.seconds.ago)
+    session.attempts.create!(code: "other pending source", language: "ruby", total_cases: 6)
+    sign_in(user)
+    code = "def contains_duplicate(nums); nums.uniq.length < nums.length; end"
+
+    expect do
+      post problem_attempts_path(problem), params: { attempt: { code: code, language: "ruby" } }
+    end.not_to change(Attempt, :count)
+
+    expect(enqueued_jobs).to be_empty
+    expect(response).to have_http_status(:service_unavailable)
+    expect(response.headers.fetch("Retry-After").to_i).to be_between(36, 37)
+    expect(response.body).to include("The judge is at capacity (2 pending submissions)", "not queued", "estimate")
+    expect(response.body).to include(ERB::Util.html_escape(code))
+    expect(response.body).not_to include("private source", "other pending source")
+
+    session.attempts.first.update!(judge_result: "Runtime Error")
+    expect do
+      post problem_attempts_path(problem), params: { attempt: { code: code, language: "ruby" } }
+    end.to change(Attempt, :count).by(1).and change { enqueued_jobs.size }.by(1)
+    expect(response).to redirect_to(attempt_path(user.attempts.sole))
+  end
+
+  it "shows the estimated wait and then the running submission without changing its verdict" do
+    sign_in(user)
+    problem = Problem.first
+    session = user.practice_sessions.for_today(problem)
+    travel_to(Time.utc(2026, 11, 4, 18)) do
+      first = session.attempts.create!(code: "private older source", total_cases: 6, judging_started_at: 10.seconds.ago)
+      second = session.attempts.create!(code: "queued source", total_cases: 7)
+      attempt = session.attempts.create!(code: "my source", total_cases: 6)
+      session.attempts.create!(code: "later source", total_cases: 6)
+
+      get attempt_path(attempt)
+      expect(response.body).to include("2 submissions ahead", "about 86 seconds", "estimate")
+      expect(response.body).not_to include("private older source", "queued source", "later source")
+
+      first.update!(judge_result: "Accepted")
+      second.update!(judge_result: "Wrong Answer")
+      attempt.update!(judging_started_at: Time.current)
+      get attempt_path(attempt)
+      expect(response.body).to include("Judging has started", "Refresh result")
+      expect(response.body).not_to include("submissions ahead")
+      expect(attempt.reload.judge_result).to eq("Pending")
+    end
+  end
+
   it "registers only Free members and does not accept a role supplied by the browser" do
     post registration_path, params: { user: { email: "new@example.com", password: "correct-horse-battery", password_confirmation: "correct-horse-battery", role: "Premium" } }
     expect(User.find_by!(email: "new@example.com").role).to eq("Free")

@@ -11,6 +11,16 @@ Feature: US7 — Online Judge & Error Recovery
     Then I am asked to sign in
     And no submission has been created
 
+  Scenario: Retry with my code after the judge reaches capacity
+    Given I am signed in as a "Free" member
+    And the judge has reached its submission limit
+    When I submit a correct Ruby solution for "contains-duplicate"
+    Then I am told when to retry without losing my code
+    When the earlier submissions finish
+    And I submit my solution again
+    Then I first see a "Pending" result
+    And I see an estimated wait before judging starts
+
   Scenario Outline: Solve a real problem using Ruby without JavaScript
     Given I am signed in as a "<role>" member
     And I have completed the prerequisites for "<slug>"

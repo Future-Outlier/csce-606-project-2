@@ -3,6 +3,20 @@ require "rails_helper"
 RSpec.describe JudgeSubmissionJob do
   before { seed_judge }
 
+  it "records the start before execution and skips redelivery after a verdict is saved" do
+    attempt = create_user.practice_sessions.for_today(Problem.first).attempts.create!(code: "saved source")
+    submission = instance_double(Judge::Submission)
+    allow(Judge::Submission).to receive(:new).and_return(submission)
+    expect(submission).to receive(:call).once do |saved|
+      expect(saved.reload.judging_started_at).to be_present
+      saved.update!(judge_result: "Accepted", total_cases: 6, passed_cases: 6)
+    end
+
+    2.times { described_class.perform_now(attempt.reload) }
+
+    expect(attempt.reload.judge_result).to eq("Accepted")
+  end
+
   it "retries database errors when loading an attempt but discards a deleted attempt" do
     attempt = create_user.practice_sessions.for_today(Problem.first).attempts.create!(code: "saved source", language: "ruby")
     job = described_class.new(attempt)
@@ -15,9 +29,14 @@ RSpec.describe JudgeSubmissionJob do
     expect(queued.reload.attempts).to eq(1)
     expect(attempt.reload.judge_result).to eq("Pending")
 
+    queued.update!(run_at: Time.current, attempts: Delayed::Worker.max_attempts - 1)
+    expect(worker.work_off(1)).to eq([ 0, 1 ])
+    expect(queued.reload.failed_at).to be_present
+    expect(attempt.reload.judge_result).to eq("Pending")
+
     allow(GlobalID::Locator).to receive(:locate).and_call_original
     attempt.destroy!
-    queued.update!(run_at: Time.current)
+    queued.update!(run_at: Time.current, attempts: 0, failed_at: nil)
     expect(worker.work_off(1)).to eq([ 1, 0 ])
     expect(Delayed::Job.exists?(queued.id)).to be(false)
   end
