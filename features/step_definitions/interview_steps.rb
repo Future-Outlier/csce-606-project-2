@@ -43,5 +43,5 @@ end
 Then("the interviewer replied") do
   reply = @user.practice_sessions.for_today(@problem).conversation_messages.interview.where(role: "assistant")
   expect(reply.count).to eq(1)
-  expect(page).to have_content(reply.first.content.squish)
+  expect(page.text.squish).to include(reply.first.content.squish)
 end
