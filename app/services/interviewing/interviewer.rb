@@ -62,8 +62,10 @@ module Interviewing
     def build_prompt(practice_session)
       problem = practice_session.problem
       messages = practice_session.conversation_messages.interview.chronological.last(Coaching::Coach::HISTORY_LIMIT)
-      "Vague statement: #{problem.interview_prompt}\n\nFull problem: #{problem.title}\n#{problem.description}\n\n" \
-        "Dialogue so far:\n#{fenced(messages)}"
+      # The description states the post-twist constraints, so it stays hidden until the twist.
+      statement = "Vague statement: #{problem.interview_prompt}\n\nProblem title: #{problem.title}\n\n"
+      statement += "Full problem: #{problem.title}\n#{problem.description}\n\n" if practice_session.interview_twist_revealed?
+      "#{statement}Dialogue so far:\n#{fenced(messages)}"
     end
 
     # A random tag the candidate can't guess, so their text can't close the

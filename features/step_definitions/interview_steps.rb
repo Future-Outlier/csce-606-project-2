@@ -27,7 +27,11 @@ Then("I see only the vague problem") do
   expect(page).not_to have_content(@problem.description)
 end
 
-Then("I see the full problem") { expect(page).to have_content(@problem.description) }
+Then("I see what I've learned about the problem") do
+  expect(page).to have_content("What you've learned")
+  expect(page).to have_content(@problem.interview_details.first["fact"])
+  expect(page).not_to have_content(@problem.description)
+end
 
 Then("the interviewer changes the requirement") { expect(page).to have_content(@problem.interview_twist) }
 

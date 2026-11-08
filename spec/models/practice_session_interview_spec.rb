@@ -65,6 +65,18 @@ RSpec.describe PracticeSession, "interview stages" do
     expect(other.interview_state).to eq("coding")
   end
 
+  it "skip_interview! from a locked coach moves it to complexity" do
+    session.update!(coaching_state: "problem")
+    session.start_interview!
+    session.skip_interview!
+    expect(session.reload.coaching_state).to eq("complexity")
+  end
+
+  it "reveals the twist only from the twist stage on" do
+    expect(%w[not_started clarifying strategy].map { |s| described_class.new(interview_state: s).interview_twist_revealed? }).to all(be false)
+    expect(%w[twist coding skipped].map { |s| described_class.new(interview_state: s).interview_twist_revealed? }).to all(be true)
+  end
+
   it "finishing moves a locked coach to complexity, not skipped" do
     session.update!(coaching_state: "problem")
     session.start_interview!

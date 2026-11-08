@@ -227,8 +227,11 @@ unavailable", which would be wrong here. Tell Eugene about the new method.
 - The first visit to the interview page moves `not_started` to `clarifying`. The
   vague statement is shown at the top of the page, not posted as a chat
   message.
-- After clarification, the interview page shows the full description and the
-  visible examples, the same ones the problem page shows.
+- Changed after final review to keep the twist a surprise: after clarification
+  the interview page shows a "What you've learned" list of the hidden-detail
+  facts. The full description and visible examples (the same ones the problem
+  page shows) appear only from the twist stage on, and the interviewer prompt
+  likewise omits the description until then.
 - The interviewer is named "Interviewer", without a persona. Eugene's Senior
   SWE/Grug personas stay coach-only.
 - Finishing the interview also unlocks the normal problem page's editor that

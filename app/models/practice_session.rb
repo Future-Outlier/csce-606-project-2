@@ -9,6 +9,7 @@ class PracticeSession < ApplicationRecord
   INTERVIEW_SKIPPED = "skipped".freeze
   INTERVIEW_STATES = [ *INTERVIEW_STAGES, INTERVIEW_SKIPPED ].freeze
   INTERVIEW_CLARIFIED_STATES = %w[strategy twist coding skipped].freeze
+  INTERVIEW_TWIST_STATES = %w[twist coding skipped].freeze
   COACH_NAMES = { "senior_swe" => "Senior SWE", "senior_grug" => "Senior Grug" }.freeze
 
   belongs_to :user
@@ -53,15 +54,19 @@ class PracticeSession < ApplicationRecord
     INTERVIEW_CLARIFIED_STATES.include?(interview_state)
   end
 
+  def interview_twist_revealed?
+    INTERVIEW_TWIST_STATES.include?(interview_state)
+  end
+
   def start_interview!
     update!(interview_state: "clarifying") if interview_state == "not_started"
   end
 
   def advance_interview!
-    stage = INTERVIEW_STAGES.index(interview_state)
-    return if stage.nil? || stage.zero? || stage == INTERVIEW_STAGES.size - 1
+    with_lock do
+      stage = INTERVIEW_STAGES.index(interview_state)
+      next if stage.nil? || stage.zero? || stage == INTERVIEW_STAGES.size - 1
 
-    transaction do
       update!(interview_state: INTERVIEW_STAGES[stage + 1])
       post_interview_twist if interview_state == "twist"
       finish_interview! if interview_state == "coding"

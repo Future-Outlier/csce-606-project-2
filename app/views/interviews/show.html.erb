@@ -6,7 +6,15 @@
     <h1 id="problem-title"><%= @problem.title %></h1>
     <h2>What the interviewer told you</h2>
     <p class="problem-description"><%= @problem.interview_prompt %></p>
-    <% if @practice_session.interview_clarified? %>
+    <% if @practice_session.interview_clarified? && !@practice_session.interview_twist_revealed? %>
+      <h2>What you've learned</h2>
+      <ul class="learned-details">
+        <% @problem.interview_details.each do |detail| %>
+          <li><%= detail["fact"] %></li>
+        <% end %>
+      </ul>
+    <% end %>
+    <% if @practice_session.interview_twist_revealed? %>
       <h2>Problem</h2>
       <p class="problem-description"><%= @problem.description %></p>
       <%= render "problems/examples", problem: @problem %>
@@ -27,8 +35,8 @@
       </ol>
       <%= form_with model: ConversationMessage.new, url: problem_interview_messages_path(@problem), local: true do |form| %>
         <%= form.label :content, "Your message" %>
-        <%= form.text_area :content, rows: 4, required: true %>
-        <%= form.submit "Send", class: "button" %>
+        <%= form.text_area :content, rows: 4, required: true, data: { submit_on_ctrl_enter: "" } %>
+        <%= form.submit "Send (Ctrl + Enter)", class: "button" %>
       <% end %>
     </div>
   </section>

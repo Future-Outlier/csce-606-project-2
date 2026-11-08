@@ -82,8 +82,8 @@ Leaving and coming back the same day resumes the same interview.
 
 ### The three stages
 
-1. **Clarify.** Ask questions about the problem. The interviewer answers only what you ask. Once you have asked about enough of the missing details, the page reveals the full problem statement and the interviewer asks for your plan.
-2. **Strategy.** Describe your approach. When the interviewer judges it sound for the requirements, it posts a changed requirement.
+1. **Clarify.** Ask questions about the problem. The interviewer answers only what you ask. Once you have asked about enough of the missing details, the interviewer asks for your plan, and the page lists what you have learned so far.
+2. **Strategy.** Describe your approach. When the interviewer judges it sound for the requirements, it posts a changed requirement, and the page then shows the full problem statement and examples.
 3. **Twist.** Explain how you would adapt your solution. When the interviewer is satisfied, the editor unlocks.
 
 The interviewer never writes code for you, and it does not hand out details you have not asked about.

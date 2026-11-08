@@ -39,6 +39,22 @@ RSpec.describe Interviewing::Interviewer do
     expect(client.last_system).to include(problem.interview_twist)
   end
 
+  it "keeps the full description out of the prompt until the twist" do
+    %w[clarifying strategy].each do |state|
+      practice_session.update!(interview_state: state)
+      described_class.new(client: client).call(practice_session)
+      expect(client.last_prompt).not_to include(problem.description)
+      expect(client.last_system).not_to include(problem.description)
+      expect(client.last_prompt).to include(problem.interview_prompt)
+    end
+
+    %w[twist coding skipped].each do |state|
+      practice_session.update!(interview_state: state)
+      described_class.new(client: client).call(practice_session)
+      expect(client.last_prompt).to include(problem.description)
+    end
+  end
+
   it "fences only interview turns" do
     say("user", "coaching question", phase: "coaching")
     say("user", "what is the size?")

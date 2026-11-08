@@ -6,13 +6,13 @@ Feature: Turn-based interview
   Background:
     Given the six requested Easy problems are available
 
-  Scenario: Clarifying the problem reveals the full statement
+  Scenario: Clarifying the problem shows what I have learned
     Given I am signed in as a "Premium" member
     And the interviewer accepts my answers
     When I start the interview for "Contains Duplicate"
     Then I see only the vague problem
     When I ask the interviewer "How big can the list be?"
-    Then I see the full problem
+    Then I see what I've learned about the problem
 
   Scenario: Adapting to the twist unlocks the editor
     Given I am signed in as a "Premium" member

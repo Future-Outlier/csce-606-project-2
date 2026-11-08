@@ -33,12 +33,18 @@ RSpec.describe "Turn-based interview", type: :request do
       expect(interview_session(premium).interview_state).to eq("clarifying")
     end
 
-    it "reveals the full problem after clarification" do
+    it "shows what you've learned after clarification and the full problem only after the twist" do
       reply_with
       get problem_interview_path(problem)
       say("What are the inputs?")
       follow_redirect!
 
+      expect(response.body).to include("What you've learned")
+      expect(response.body).to include(CGI.escapeHTML(problem.interview_details.first["fact"]))
+      expect(response.body).not_to include(CGI.escapeHTML(problem.description))
+
+      say("A plan")
+      follow_redirect!
       expect(response.body).to include(CGI.escapeHTML(problem.description))
     end
 
@@ -78,7 +84,18 @@ RSpec.describe "Turn-based interview", type: :request do
       expect(flash[:alert]).to eq(failure_alert)
       session = interview_session(premium)
       expect(session.interview_state).to eq("skipped")
+      expect(session.coaching_state).to eq("complexity")
       expect(session.conversation_messages.pluck(:role, :content)).to eq([ [ "user", "hello" ] ])
+    end
+
+    it "lets the candidate submit after an AI outage" do
+      allow_any_instance_of(Judge::Submission).to receive(:call)
+      use_ai_client(Ai::FakeClient.new(error: Ai::Error.new("x")))
+      say("hello")
+      post problem_attempts_path(problem),
+        params: { attempt: { code: RubySolutions::CORRECT.fetch(problem.slug), language: "ruby" } }
+
+      expect(response).to redirect_to(attempt_path(Attempt.last))
     end
 
     it "treats a non-JSON reply as an outage" do
@@ -87,6 +104,7 @@ RSpec.describe "Turn-based interview", type: :request do
 
       expect(flash[:alert]).to eq(failure_alert)
       expect(interview_session(premium).interview_state).to eq("skipped")
+      expect(interview_session(premium).coaching_state).to eq("complexity")
       expect(interview_session(premium).conversation_messages.count).to eq(1)
     end
 

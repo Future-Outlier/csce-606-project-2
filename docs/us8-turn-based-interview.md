@@ -21,6 +21,19 @@ On any AI failure (`Ai` errors, `Coaching::Parser::InvalidResponse`), the
 candidate's message is kept and `skip_interview!` unlocks the editor, so
 nobody is stuck.
 
+## What the page and the prompt reveal
+
+The problem's description states the real, post-twist constraints, so it is
+hidden until the twist. `PracticeSession#interview_twist_revealed?` is true for
+`twist`, `coding` and `skipped`. Before that, the page shows the vague
+statement and, from `strategy` on (`interview_clarified?`), a "What you've
+learned" list of the hidden-detail facts. From the twist on it shows the full
+description and examples. The interviewer prompt follows the same rule: the
+full description is sent only when the twist is revealed.
+
+`advance_interview!` runs inside `with_lock`, so concurrent sends cannot
+double-advance a stage or post the twist twice.
+
 ## Shared coach unlock
 
 `AttemptsController` blocks submissions while the coach is locked.
