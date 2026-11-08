@@ -42,7 +42,8 @@ RSpec.describe Judge::Submission do
     allow(runner).to receive(:call).and_return({ "status" => "ok", "output" => false })
     described_class.new(runner: runner).call(attempt)
     expect(attempt.reload.judge_result).to eq("Wrong Answer")
-    expect(attempt.passed_cases).to eq(problem.test_cases.where(expected_output: false).count)
+    expected_passes = problem.test_cases.count { |test_case| test_case.expected_output == false }
+    expect(attempt.passed_cases).to eq(expected_passes)
     expect(attempt.code).to eq(RubySolutions::CORRECT.fetch(problem.slug))
   end
 
