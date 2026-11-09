@@ -88,6 +88,8 @@ Leaving and coming back the same day resumes the same interview.
 
 The interviewer never writes code for you, and it does not hand out details you have not asked about.
 
+![An interview for Contains Duplicate at the twist stage: the interviewer has changed the list size, the full problem is shown, and the editor is still locked](images/interview-mode.png)
+
 ### Coding
 
 Once the editor is unlocked, submit your solution on the interview page. The usual judge runs it against the problem's tests, and the result page is the same as for any other submission. Finishing the interview also unlocks the editor on the normal problem page for that day.
