@@ -26,6 +26,36 @@ When("I submit a correct Ruby solution for {string}") do |slug|
   @attempt = Attempt.order(:id).last
 end
 
+When("I submit a correct {string} solution for {string}") do |language, slug|
+  @problem = Problem.find_by!(slug: slug)
+  @submitted_code = LanguageSolutions::CORRECT.fetch(language).fetch(slug)
+  visit problem_path(@problem, language: language)
+  fill_in "#{Attempt.language_name(language)} source code", with: @submitted_code
+  click_button "Submit #{Attempt.language_name(language)} solution"
+  @attempt = Attempt.order(:id).last
+end
+
+Then("the submission shows {string}") { |version| expect(page).to have_content(version) }
+
+When("I submit invalid {string} syntax") do |language|
+  @problem = Problem.find_by!(slug: "contains-duplicate")
+  @submitted_code = LanguageSolutions::INVALID.fetch(language)
+  visit problem_path(@problem, language: language)
+  fill_in "#{Attempt.language_name(language)} source code", with: @submitted_code
+  click_button "Submit #{Attempt.language_name(language)} solution"
+  @attempt = Attempt.order(:id).last
+end
+
+Then("the page says that my code could not be compiled") do
+  expect(page).to have_content("Your code could not be compiled.")
+end
+
+Then("compiler output is not displayed") do
+  expect(page).not_to have_content("SyntaxError")
+  expect(page).not_to have_content("syntax error")
+  expect(page).not_to have_content("expected declaration")
+end
+
 Then("I see an {string} result with every predefined case passed") do |verdict|
   expect(page).to have_content(verdict)
   expect(page).to have_content("#{@problem.test_cases.count} / #{@problem.test_cases.count} test cases passed")
@@ -101,7 +131,15 @@ When("I try to submit a solution labelled {string}") do |language|
   page.driver.submit(:post, problem_attempts_path(problem), { attempt: { code: "puts 1", language: language } })
 end
 
-Then("the page explains that only Ruby is supported") { expect(page).to have_content("only Ruby is supported") }
+Then("the page explains that the language is not supported") { expect(page).to have_content("is not supported") }
+
+Given("the remote judge cannot be reached") do
+  @previous_judge_url = ENV["JUDGE_URL"]
+  @previous_judge_token = ENV["JUDGE_TOKEN"]
+  @remote_judge_configured = true
+  ENV["JUDGE_URL"] = "https://127.0.0.1:1/execute"
+  ENV["JUDGE_TOKEN"] = "acceptance-secret"
+end
 
 When("I submit an empty Ruby solution") do
   @problem = Problem.first

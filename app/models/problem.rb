@@ -31,4 +31,8 @@ class Problem < ApplicationRecord
   def to_param
     slug
   end
+
+  def starter_code_for(language)
+    Judge::Language.starter_code(self, language)
+  end
 end

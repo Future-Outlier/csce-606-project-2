@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_28_213854) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -25,7 +25,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_213854) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["practice_session_id"], name: "index_attempts_on_practice_session_id"
-    t.check_constraint "language::text = 'ruby'::text", name: "attempts_ruby_only"
+    t.check_constraint "language::text = ANY (ARRAY['ruby'::character varying, 'python'::character varying, 'go'::character varying, 'cpp'::character varying]::text[])", name: "attempts_supported_languages"
     t.check_constraint "passed_cases >= 0 AND total_cases >= passed_cases", name: "attempts_case_counts"
   end
 

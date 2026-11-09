@@ -19,7 +19,7 @@ submission_pid = Process.fork do
   result_reader.close
   begin
     STDOUT.reopen(File::NULL, "w")
-    result = RubySubmission.new.call(JSON.parse(STDIN.read))
+    result = Submission.new.call(JSON.parse(STDIN.read))
     result["coverage"] = Coverage.result if Coverage.running?
     result_writer.puts(JSON.generate(result))
   ensure

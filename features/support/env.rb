@@ -8,6 +8,7 @@ require "database_cleaner/active_record"
 require "active_support/testing/time_helpers"
 require_relative "../../spec/support/judge_helpers"
 require_relative "../../spec/fixtures/ruby_solutions"
+require_relative "../../spec/fixtures/language_solutions"
 require_relative "../../spec/support/code_review_helpers"
 
 ActiveRecord::Migration.maintain_test_schema!
@@ -19,4 +20,10 @@ Capybara.default_driver = :rack_test
 DatabaseCleaner.strategy = :transaction
 World(JudgeHelpers, CodeReviewHelpers, RSpec::Matchers, ActiveSupport::Testing::TimeHelpers)
 
-After { travel_back }
+After do
+  travel_back
+  next unless @remote_judge_configured
+
+  ENV["JUDGE_URL"] = @previous_judge_url
+  ENV["JUDGE_TOKEN"] = @previous_judge_token
+end
