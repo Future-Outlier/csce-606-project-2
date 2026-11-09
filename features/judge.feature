@@ -11,15 +11,6 @@ Feature: US7 — Online Judge & Error Recovery
     Then I am asked to sign in
     And no submission has been created
 
-  Scenario: Retry with my code after the judge reaches capacity
-    Given I am signed in as a "Free" member
-    And the judge has reached its limit of 10 Pending submissions
-    When I submit a correct Ruby solution for "contains-duplicate"
-    Then I am told when to retry without losing my code
-    When one earlier submission finishes
-    And I submit my solution again
-    Then I see a Pending result with 9 submissions ahead and an estimated wait of 383 seconds
-
   Scenario Outline: Solve a real problem using Ruby without JavaScript
     Given I am signed in as a "<role>" member
     And I have completed the prerequisites for "<slug>"
@@ -36,6 +27,18 @@ Feature: US7 — Online Judge & Error Recovery
       | Premium | binary-search              |
       | Free    | maximum-average-subarray-i |
       | Premium | reverse-linked-list        |
+
+  Scenario: Wait behind submissions already in the queue
+    Given I am signed in as a "Free" member
+    And the judge queue contains 9 Pending submissions
+    When I submit a correct Ruby solution for "contains-duplicate"
+    Then I see a Pending result with 9 submissions ahead and an estimated wait of 383 seconds
+
+  Scenario: Keep my code when the judge queue is full
+    Given I am signed in as a "Free" member
+    And the judge queue contains 10 Pending submissions
+    When I submit a correct Ruby solution for "contains-duplicate"
+    Then I am told when to retry without losing my code
 
   Scenario Outline: Recover from a Ruby submission failure
     Given I am signed in as a "Free" member

@@ -16,12 +16,12 @@ end
 Then("I am asked to sign in") { expect(page).to have_content("Please sign in to practice.") }
 Then("no submission has been created") { expect(Attempt.count).to eq(0) }
 
-Given("the judge has reached its limit of 10 Pending submissions") do
+Given("the judge queue contains {int} Pending submissions") do |count|
   expect(Judge::Queue::MAX_PENDING).to eq(10)
   problem = Problem.find_by!(slug: "contains-duplicate")
   other = create_user(email: "queue-owner@example.com")
   session = other.practice_sessions.for_today(problem)
-  10.times do
+  count.times do
     session.attempts.create!(code: "earlier submission", total_cases: problem.test_cases.count)
   end
   @pending_count = Attempt.count
@@ -36,15 +36,6 @@ Then("I am told when to retry without losing my code") do
   expect(page.find_field("Ruby source code").value.gsub(/\r\n?/, "\n")).to eq(@submitted_code)
   expect(Attempt.count).to eq(@pending_count)
   expect(enqueued_jobs).to be_empty
-end
-
-When("one earlier submission finishes") do
-  Attempt.where(judge_result: Attempt::PENDING).order(:id).first.update!(judge_result: Attempt::ACCEPTED)
-end
-
-When("I submit my solution again") do
-  click_button "Submit Ruby solution"
-  @attempt = @user.attempts.order(:id).last
 end
 
 Then("I see a Pending result with 9 submissions ahead and an estimated wait of 383 seconds") do
