@@ -20,7 +20,8 @@ RSpec.describe Judge::DockerRunner do
       expect(payload).not_to have_key("expected_output")
       expect(payload).to include("language" => "ruby", "inputs" => [ { "args" => [ [ 1, 1 ] ] } ])
       expect(timeout).to be > 4
-      Judge::Command::Result.new('{"status":"ok","outputs":[true]}', "", 0, false, false)
+      Judge::Command::Result.new(
+        '{"status":"ok","outputs":[true],"runtime":"Ruby 4.0.1"}', "", 0, false, false)
     end
     expect(command).to receive(:call) do |arguments, timeout:|
       expect(arguments).to eq([ "docker", "rm", "--force", run_name ])
@@ -29,7 +30,7 @@ RSpec.describe Judge::DockerRunner do
     result = described_class.new(command: command).call(
       code: "def contains_duplicate(nums); true; end", language: "ruby", problem: problem,
       inputs: [ { "args" => [ [ 1, 1 ] ] } ])
-    expect(result).to eq({ "status" => "ok", "outputs" => [ true ] })
+    expect(result).to eq({ "status" => "ok", "outputs" => [ true ], "runtime" => "Ruby 4.0.1" })
   end
 
   it "classifies unavailable, excessive, and malformed executor output" do
@@ -71,6 +72,7 @@ RSpec.describe Judge::DockerRunner do
       method_name: problem.method_name,
       input_kind: problem.input_kind,
       language: "ruby",
+      runtime: "Ruby 4.0.1",
       inputs: [ { "args" => [ [ 1, 1 ] ] } ],
       output_kind: "boolean"
     )
@@ -82,7 +84,7 @@ RSpec.describe Judge::DockerRunner do
     report = JSON.parse(execution.stdout).fetch("coverage")
 
     {
-      "/judge/main.rb" => "Process.wait2",
+      "/judge/main.rb" => "Submission.new.call",
       "/judge/runner.rb" => "class Submission"
     }.each do |path, source_line|
       line_index = File.readlines(Rails.root.join(path.delete_prefix("/"))).index { |line| line.include?(source_line) }

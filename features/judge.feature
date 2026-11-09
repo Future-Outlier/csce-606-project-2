@@ -85,6 +85,13 @@ Feature: US7 — Online Judge & Error Recovery
     Then I see the "Judge Unavailable" verdict and a passed-case count
     And my submitted code is preserved in my personal history
 
+  Scenario: Judge a Go submission through a Heroku one-off dyno
+    Given I am signed in as a "Free" member
+    And Heroku can create an isolated one-off judge dyno
+    When I submit a correct "go" solution for "contains-duplicate"
+    Then I see an "Accepted" result with every predefined case passed
+    And the submission shows "Go 1.27.3"
+
   Scenario: Keep an empty Ruby submission in my history
     Given I am signed in as a "Free" member
     When I submit an empty Ruby solution

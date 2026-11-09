@@ -22,8 +22,9 @@ World(JudgeHelpers, CodeReviewHelpers, RSpec::Matchers, ActiveSupport::Testing::
 
 After do
   travel_back
-  next unless @remote_judge_configured
-
-  ENV["JUDGE_URL"] = @previous_judge_url
-  ENV["JUDGE_TOKEN"] = @previous_judge_token
+  if @remote_judge_configured
+    ENV["JUDGE_URL"] = @previous_judge_url
+    ENV["JUDGE_TOKEN"] = @previous_judge_token
+  end
+  Judge::Runner.define_singleton_method(:build, @original_judge_runner_build) if @original_judge_runner_build
 end

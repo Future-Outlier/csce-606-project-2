@@ -141,6 +141,29 @@ Given("the remote judge cannot be reached") do
   ENV["JUDGE_TOKEN"] = "acceptance-secret"
 end
 
+Given("Heroku can create an isolated one-off judge dyno") do
+  problem = Problem.find_by!(slug: "contains-duplicate")
+  outputs = problem.test_cases.order(:position).map(&:expected_output)
+  response = Struct.new(:code, :body)
+  api_class = Class.new(Judge::HerokuDynoRunner::Api) do
+    define_method(:request) do |_uri, _request|
+      response.new("201", JSON.generate(attach_url: "rendezvous://rendezvous.runtime.heroku.com:5000/secret"))
+    end
+  end
+  chunks = [ JSON.generate(status: "ok", outputs: outputs, runtime: "Go 1.27.3") ]
+  socket = Object.new
+  socket.define_singleton_method(:write) { |value| value.bytesize }
+  socket.define_singleton_method(:gets) { "connected\n" }
+  socket.define_singleton_method(:readpartial) { |_size| chunks.empty? ? raise(EOFError) : chunks.shift }
+  socket.define_singleton_method(:close) { }
+  runner = Judge::HerokuDynoRunner.new(
+    app: "codecoach-judge", token: "platform-secret", api: api_class.new,
+    rendezvous: Judge::HerokuDynoRunner::Rendezvous.new(socket_factory: ->(_uri) { socket })
+  )
+  @original_judge_runner_build = Judge::Runner.method(:build)
+  Judge::Runner.define_singleton_method(:build) { runner }
+end
+
 When("I submit an empty Ruby solution") do
   @problem = Problem.first
   @submitted_code = ""
