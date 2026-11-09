@@ -16,11 +16,12 @@ end
 Then("I am asked to sign in") { expect(page).to have_content("Please sign in to practice.") }
 Then("no submission has been created") { expect(Attempt.count).to eq(0) }
 
-Given("the judge has reached its submission limit") do
+Given("the judge has reached its limit of 10 Pending submissions") do
+  expect(Judge::Queue::MAX_PENDING).to eq(10)
   problem = Problem.find_by!(slug: "contains-duplicate")
   other = create_user(email: "queue-owner@example.com")
   session = other.practice_sessions.for_today(problem)
-  Judge::Queue::MAX_PENDING.times do
+  10.times do
     session.attempts.create!(code: "earlier submission", total_cases: problem.test_cases.count)
   end
   @pending_count = Attempt.count
@@ -29,7 +30,7 @@ end
 Then("I am told when to retry without losing my code") do
   expect(page.status_code).to eq(503)
   expect(page.response_headers.fetch("Retry-After")).to eq("47")
-  expect(page).to have_content("The judge is at capacity")
+  expect(page).to have_content("The judge is at capacity (10 pending submissions)")
   expect(page).to have_content("try again in about 47 seconds")
   expect(page).to have_content("not queued")
   expect(page.find_field("Ruby source code").value.gsub(/\r\n?/, "\n")).to eq(@submitted_code)
@@ -37,8 +38,8 @@ Then("I am told when to retry without losing my code") do
   expect(enqueued_jobs).to be_empty
 end
 
-When("the earlier submissions finish") do
-  Attempt.where(judge_result: "Pending").find_each { |attempt| attempt.update!(judge_result: "Accepted") }
+When("one earlier submission finishes") do
+  Attempt.where(judge_result: Attempt::PENDING).order(:id).first.update!(judge_result: Attempt::ACCEPTED)
 end
 
 When("I submit my solution again") do
@@ -46,10 +47,14 @@ When("I submit my solution again") do
   @attempt = @user.attempts.order(:id).last
 end
 
-Then("I see an estimated wait before judging starts") do
-  expect(page).to have_content("0 submissions ahead")
-  expect(page).to have_content("about 5 seconds")
+Then("I see a Pending result with 9 submissions ahead and an estimated wait of 383 seconds") do
+  expect(@attempt.reload.judge_result).to eq(Attempt::PENDING)
+  expect(Attempt.where(judge_result: Attempt::PENDING).count).to eq(10)
+  expect(page).to have_content(Attempt::PENDING)
+  expect(page).to have_content("9 submissions ahead")
+  expect(page).to have_content("about 383 seconds")
   expect(page).to have_content("estimate")
+  expect(page).to have_link("Refresh result", href: attempt_path(@attempt))
 end
 
 When("I submit a correct Ruby solution for {string}") do |slug|
