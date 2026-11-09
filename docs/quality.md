@@ -2,7 +2,8 @@
 
 The **Quality of Work** job in [ci.yml](../.github/workflows/ci.yml) runs the
 actual application tests on pull requests, main pushes, and merge groups.
-It builds the existing Docker judge image and prepares the test database, then:
+It starts PostgreSQL 17, builds the existing Docker judge image, and prepares
+the PostgreSQL test database, then:
 
 - Runs RSpec and fails below 90% application Ruby line coverage.
 - Runs strict Cucumber and fails below 90% application Ruby line coverage.
@@ -25,6 +26,7 @@ Ruby and gems, then:
 
 ```sh
 bin/judge-build
+docker compose up -d --wait db
 RAILS_ENV=test bin/rails db:prepare
 export COVERAGE_ROOT="$(mktemp -d)"
 bundle exec rspec

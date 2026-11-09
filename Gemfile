@@ -2,9 +2,9 @@ source "https://rubygems.org"
 
 ruby "4.0.1"
 
-gem "rails", "~> 8.1.3", ">= 8.1.4.1"
+gem "rails", "~> 8.1.4", ">= 8.1.4.1"
 gem "propshaft"
-gem "sqlite3", ">= 2.1"
+gem "pg", "~> 1.6"
 gem "puma", ">= 5.0"
 gem "delayed_job_active_record", "~> 4.1"
 gem "importmap-rails"

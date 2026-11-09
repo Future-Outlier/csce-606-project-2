@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: codecoach
+      POSTGRES_PASSWORD: codecoach
+      POSTGRES_DB: codecoach_development
+    ports:
+      - "127.0.0.1:${PGPORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codecoach -d codecoach_development"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  postgres_data:

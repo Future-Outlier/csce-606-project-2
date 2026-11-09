@@ -1,6 +1,8 @@
 module Judge
   class Queue
     MAX_PENDING = Integer(ENV.fetch("JUDGE_QUEUE_LIMIT", "10"), 10)
+    ADVISORY_LOCK_NAMESPACE = 0x434F_4445
+    ADVISORY_LOCK_ID = 0x4A55_4447
     raise ArgumentError, "JUDGE_QUEUE_LIMIT must be positive" unless MAX_PENDING.positive?
 
     class Full < StandardError
@@ -19,6 +21,7 @@ module Judge
       return false unless attempt.valid?
 
       Attempt.transaction do
+        lock_capacity
         pending = pending_attempts.limit(MAX_PENDING).to_a
         if pending.size >= MAX_PENDING
           first = pending.find(&:judging_started_at) || pending.first
@@ -37,6 +40,12 @@ module Judge
     end
 
     private
+
+    def lock_capacity
+      Attempt.connection.execute(
+        "SELECT pg_advisory_xact_lock(#{ADVISORY_LOCK_NAMESPACE}, #{ADVISORY_LOCK_ID})"
+      )
+    end
 
     def pending_attempts
       Attempt.where(judge_result: Attempt::PENDING).order(:id)

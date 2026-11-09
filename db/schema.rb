@@ -11,8 +11,11 @@
 # It's strongly recommended that you check this file into your version control system.
 
 ActiveRecord::Schema[8.1].define(version: 2026_11_04_180000) do
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_catalog.plpgsql"
+
   create_table "attempts", force: :cascade do |t|
-    t.integer "practice_session_id", null: false
+    t.bigint "practice_session_id", null: false
     t.text "code", null: false
     t.string "language", default: "ruby", null: false
     t.string "judge_result", default: "Pending", null: false
@@ -24,13 +27,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_180000) do
     t.datetime "judging_started_at"
     t.index ["judge_result"], name: "index_attempts_on_judge_result"
     t.index ["practice_session_id"], name: "index_attempts_on_practice_session_id"
-    t.check_constraint "language = 'ruby'", name: "attempts_ruby_only"
+    t.check_constraint "language::text = 'ruby'::text", name: "attempts_ruby_only"
     t.check_constraint "passed_cases >= 0 AND total_cases >= passed_cases", name: "attempts_case_counts"
   end
 
   create_table "conversation_messages", force: :cascade do |t|
-    t.integer "practice_session_id", null: false
-    t.integer "attempt_id"
+    t.bigint "practice_session_id", null: false
+    t.bigint "attempt_id"
     t.string "role", null: false
     t.text "content", null: false
     t.datetime "created_at", null: false
@@ -56,8 +59,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_180000) do
   end
 
   create_table "practice_sessions", force: :cascade do |t|
-    t.integer "user_id", null: false
-    t.integer "problem_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "problem_id", null: false
     t.string "status", default: "in_progress", null: false
     t.integer "review_rating"
     t.text "feedback_summary"
@@ -76,7 +79,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_180000) do
   end
 
   create_table "problems", force: :cascade do |t|
-    t.integer "topic_id", null: false
+    t.bigint "topic_id", null: false
     t.string "slug", null: false
     t.string "title", null: false
     t.text "description", null: false
@@ -93,8 +96,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_180000) do
   end
 
   create_table "review_schedules", force: :cascade do |t|
-    t.integer "user_id", null: false
-    t.integer "problem_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "problem_id", null: false
     t.date "next_review_date", null: false
     t.integer "interval_days", default: 1, null: false
     t.datetime "created_at", null: false
@@ -108,7 +111,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_180000) do
   end
 
   create_table "test_cases", force: :cascade do |t|
-    t.integer "problem_id", null: false
+    t.bigint "problem_id", null: false
     t.json "input", null: false
     t.json "expected_output", null: false
     t.integer "position", null: false
@@ -120,14 +123,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_180000) do
   end
 
   create_table "topic_prerequisites", force: :cascade do |t|
-    t.integer "topic_id", null: false
-    t.integer "prerequisite_topic_id", null: false
+    t.bigint "topic_id", null: false
+    t.bigint "prerequisite_topic_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["prerequisite_topic_id"], name: "index_topic_prerequisites_on_prerequisite_topic_id"
     t.index ["topic_id", "prerequisite_topic_id"], name: "idx_on_topic_id_prerequisite_topic_id_1515a7b7d6", unique: true
     t.index ["topic_id"], name: "index_topic_prerequisites_on_topic_id"
-    t.check_constraint "topic_id != prerequisite_topic_id", name: "topics_cannot_require_themselves"
+    t.check_constraint "topic_id <> prerequisite_topic_id", name: "topics_cannot_require_themselves"
   end
 
   create_table "topics", force: :cascade do |t|

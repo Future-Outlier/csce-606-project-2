@@ -3,6 +3,16 @@ require "rails_helper"
 RSpec.describe Judge::Queue do
   before { seed_judge }
 
+  it "locks PostgreSQL queue capacity before counting pending submissions" do
+    connection = Attempt.connection
+    expect(connection).to receive(:execute)
+      .with("SELECT pg_advisory_xact_lock(1129268293, 1247102023)").ordered.and_call_original
+    expect(Attempt).to receive(:where).with(judge_result: Attempt::PENDING).ordered.and_call_original
+    attempt = create_user.practice_sessions.for_today(Problem.first).attempts.build(code: "saved source", total_cases: 6)
+
+    expect(described_class.new.submit(attempt)).to be(true)
+  end
+
   it "keeps retry advice positive when a running submission exceeds its estimate" do
     stub_const("Judge::Queue::MAX_PENDING", 1)
     session = create_user.practice_sessions.for_today(Problem.first)

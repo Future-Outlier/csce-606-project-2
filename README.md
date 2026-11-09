@@ -6,7 +6,7 @@
 - Ruby 4.0.1
 - Bundler 4.0.19
 - GNU Make
-- Docker Desktop (macOS or Windows) or Docker Engine (Linux)
+- Docker Desktop (macOS or Windows) or Docker Engine with the Compose plugin (Linux)
 
 ## Run
 
@@ -16,6 +16,10 @@
    and back in, then retry. See [Docker permissions](#docker-permissions-on-linux).
 3. Run `make run` from the project directory to start local development.
 
+Setup starts PostgreSQL 17 in Docker, waits until it is ready, and prepares the
+development and test databases. PostgreSQL data persists in a Docker volume.
+To stop the database without deleting data, run `docker compose stop db`.
+
 For an existing database, run `bin/rails db:migrate db:seed` to install the
 roadmap's prerequisite links. Seeding preserves accounts and submissions.
 
@@ -23,6 +27,39 @@ See the [user guide](docs/user_guide.md) for roadmap states and practice, and
 [roadmap implementation](docs/roadmap.md) for model contracts and validation.
 
 ## Configuration
+
+### Database
+
+All environments use PostgreSQL. Local defaults are `127.0.0.1:5432`, user and
+password `codecoach`, with separate `codecoach_development` and `codecoach_test`
+databases. The Docker port is bound only to localhost. If port 5432 is occupied,
+use `PGPORT=5433 make run` and use the same `PGPORT` for later Rails/test commands.
+
+To use an existing PostgreSQL server, set `PGHOST`, `PGPORT`, `PGUSER`, and
+`PGPASSWORD`, or set `DATABASE_URL`. Setup skips the Docker database when
+`PGHOST` or `DATABASE_URL` is set. The local role needs permission to create the
+development and test databases. For source builds of the `pg` gem, install
+PostgreSQL development headers (`libpq-dev` on Debian/Ubuntu or `libpq` on
+Homebrew, with `pg_config` on `PATH`).
+
+Tests use `codecoach_test` by default. `DATABASE_URL` overrides the database
+name too: unset it for local tests, or supply a URL for a dedicated test database.
+Never run tests with a development or production URL.
+
+In production, set `DATABASE_URL` to the provisioned PostgreSQL connection
+string and set `RAILS_MASTER_KEY`. Run
+`RAILS_ENV=production bin/rails db:prepare` before serving traffic; the Docker
+entrypoint already does this. Kamal also forwards `DATABASE_URL` from the
+deployment environment. The local Compose database and its demo credentials
+are for development only. This configuration does not provision or deploy a
+production database.
+
+Existing `storage/*.sqlite3` files are preserved, but Rails no longer reads them.
+`db:prepare` creates a fresh PostgreSQL database; it does not copy SQLite data.
+Keep a backup and transfer existing records before switching an installation
+that needs to retain accounts or practice history.
+
+### AI
 
 AI code review uses OpenAI. Set these environment variables before starting the server:
 
@@ -86,6 +123,7 @@ Install the Ruby version in `.ruby-version` and run `bundle install`, then:
 
 ```sh
 bin/judge-build
+docker compose up -d --wait db
 RAILS_ENV=test bin/rails db:prepare
 export COVERAGE_ROOT="$(mktemp -d)"
 bundle exec rspec

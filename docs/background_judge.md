@@ -1,6 +1,6 @@
 # Background judging
 
-Ruby submissions use Active Job with Delayed Job, a shared SQLite database,
+Ruby submissions use Active Job with Delayed Job, a shared PostgreSQL database,
 and one judge worker. Puma saves submissions and serves pages; the worker
 executes submitted Ruby in isolated Linux Docker containers. Start Docker
 Desktop on macOS or Docker Engine on Linux before judging.
@@ -10,6 +10,7 @@ Desktop on macOS or Docker Engine on Linux before judging.
 After the existing application setup, prepare the database and executor:
 
 ```sh
+docker compose up -d --wait db
 bin/rails db:prepare
 bin/judge-build
 ```
@@ -21,9 +22,10 @@ in another terminal:
 QUEUE=judge bin/rails jobs:work
 ```
 
-For production, prefix database preparation and the worker command with
-`RAILS_ENV=production`. Puma and the worker must use the same persistent
-SQLite database, application version, Docker daemon, and executor image.
+For production, set `DATABASE_URL` and prefix database preparation and the
+worker command with `RAILS_ENV=production`. Puma and the worker must use the
+same persistent PostgreSQL database, application version, Docker daemon, and
+executor image.
 `JUDGE_IMAGE` selects the image for both `bin/judge-build` and the worker;
 its default is `codecoach-judge:local`.
 Run the worker under a process supervisor so it restarts after failure.
@@ -44,7 +46,7 @@ Authenticated browser submits Ruby
 Check roadmap access, coaching, case readiness, and input validation
         |
         v
-SQLite transaction: count Pending Attempts
+PostgreSQL transaction: lock queue capacity, then count Pending Attempts
         |
         +--> At capacity: HTTP 503 + Retry-After
         |    Keep source in editor; save no Attempt or job
@@ -70,11 +72,10 @@ Delete completed job; reserve the next eligible job
 Browser Refresh result reads the owner's saved Attempt
 ```
 
-Capacity checking, saving, and enqueueing happen inside Rails' SQLite
-`BEGIN IMMEDIATE` transaction. Competing web processes serialize that check
-through the database. No database transaction stays open while Docker runs.
-A migration to another database needs its own concurrency verification and
-locking; this implementation does not claim PostgreSQL support.
+Capacity checking, saving, and enqueueing happen inside one PostgreSQL
+transaction. A transaction-level advisory lock serializes the capacity check
+across competing web processes and releases automatically on commit or
+rollback. No database transaction stays open while Docker runs.
 
 Validation failures return HTTP 422 without queueing. An enqueue failure
 retains the Attempt and records `Judge Unavailable`, releasing its capacity.
