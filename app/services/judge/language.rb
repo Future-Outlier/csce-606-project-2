@@ -33,8 +33,6 @@ module Judge
       def go_starter(problem, parameters)
         signature = parameters.zip(argument_types(problem, "go")).map { |name, type| "#{name} #{type}" }.join(", ")
         <<~GO
-          package main
-
           func #{method_name(problem)}(#{signature}) #{return_type(problem, "go")} {
             #{default_return(problem, "go")}
           }
@@ -44,10 +42,6 @@ module Judge
       def cpp_starter(problem, parameters)
         signature = parameters.zip(argument_types(problem, "cpp")).map { |name, type| "#{type} #{name}" }.join(", ")
         <<~CPP
-          #include <string>
-          #include <vector>
-          using namespace std;
-
           class Solution {
           public:
             #{return_type(problem, "cpp")} #{method_name(problem)}(#{signature}) {

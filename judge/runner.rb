@@ -132,11 +132,9 @@ class Submission
 
   def prepare_go(directory, payload)
     source = File.join(directory, "submission.go")
-    wrapper = File.join(directory, "wrapper.go")
     binary = File.join(directory, "solution")
-    File.write(source, payload.fetch("code"))
-    File.write(wrapper, go_wrapper(payload))
-    { source: source, wrapper: wrapper, binary: binary }
+    File.write(source, go_source(payload))
+    { source: source, binary: binary }
   end
 
   def prepare_cpp(directory, payload)
@@ -153,7 +151,7 @@ class Submission
     when "go"
       [
         { "GOCACHE" => File.join(directory, "go-cache"), "GOMAXPROCS" => "1", "HOME" => directory },
-        "go", "build", "-p=1", "-o", files.fetch(:binary), files.fetch(:source), files.fetch(:wrapper)
+        "go", "build", "-p=1", "-o", files.fetch(:binary), files.fetch(:source)
       ]
     when "cpp"
       [ "g++", "-std=c++23", "-O0", "-o", files.fetch(:binary), files.fetch(:source) ]
@@ -190,6 +188,7 @@ class Submission
     linked = payload.fetch("input_kind") == LINKED_LIST_INPUT
     <<~RUBY
       require "json"
+      require "set"
       require "stringio"
 
       class ListNode
@@ -238,9 +237,18 @@ class Submission
     linked = payload.fetch("input_kind") == LINKED_LIST_INPUT
     <<~PYTHON
       import contextlib
+      import bisect
+      import collections
+      import functools
+      import heapq
       import io
+      import itertools
       import json
+      import math
+      import re
       import sys
+      from collections import Counter, defaultdict, deque
+      from typing import List, Optional
 
       class ListNode:
           def __init__(self, val=0, next_node=None):
@@ -264,7 +272,21 @@ class Submission
               node = node.next
           return values
 
-      namespace = {"ListNode": ListNode}
+      namespace = {
+          "ListNode": ListNode,
+          "List": List,
+          "Optional": Optional,
+          "Counter": Counter,
+          "defaultdict": defaultdict,
+          "deque": deque,
+          "bisect": bisect,
+          "collections": collections,
+          "functools": functools,
+          "heapq": heapq,
+          "itertools": itertools,
+          "math": math,
+          "re": re,
+      }
       source_path = #{JSON.generate(source)}
       with open(source_path, encoding="utf-8") as source_file:
           exec(compile(source_file.read(), source_path, "exec"), namespace)
@@ -280,7 +302,7 @@ class Submission
     PYTHON
   end
 
-  def go_wrapper(payload)
+  def go_source(payload)
     cases = payload.fetch("inputs").each_with_index.map do |input, index|
       arguments = input.fetch("args").each_with_index.map do |value, argument_index|
         go_argument(value, argument_index, payload)
@@ -299,9 +321,24 @@ class Submission
       package main
 
       import (
+        "container/heap"
         "encoding/json"
+        "fmt"
+        "math"
         "os"
+        "sort"
         "strconv"
+        "strings"
+      )
+
+      #{payload.fetch("code").sub(/\A\s*package\s+main\s*/, "")}
+
+      var (
+        _ heap.Interface
+        _ = fmt.Print
+        _ = math.Abs
+        _ = sort.Ints
+        _ = strings.Contains
       )
 
       type ListNode struct {
@@ -378,13 +415,8 @@ class Submission
     end.join
 
     <<~CPP
-      #include <cmath>
-      #include <iomanip>
-      #include <iostream>
-      #include <sstream>
-      #include <string>
-      #include <unordered_set>
-      #include <vector>
+      #include <bits/stdc++.h>
+      using namespace std;
 
       struct ListNode {
         int val;

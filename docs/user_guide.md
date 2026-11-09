@@ -33,6 +33,12 @@ submission work with JavaScript disabled. The result shows the fixed runtime,
 verdict, passed-case count, and saved source code. A problem must have at least
 five cases before it can be judged.
 
+Write only the requested method or function. The judge supplies `ListNode` and
+common standard-library names. C++ includes the pinned GCC `bits/stdc++.h`
+prelude, Go combines the function with common package imports, Python supplies
+names such as `Counter`, `deque`, `heapq`, `bisect`, and `math`, and Ruby loads
+`Set`. The starter code therefore needs no import or include lines.
+
 An Accepted solution updates your roadmap immediately. Wrong Answer,
 Compilation Error, Runtime Error, and Timeout use concise messages without
 compiler output or stack traces. They leave the problem unsolved unless you

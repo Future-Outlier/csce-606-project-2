@@ -23,6 +23,15 @@ RSpec.describe "Online Judge models" do
     expect { seed_judge }.not_to change { [ Problem.count, TestCase.count, Attempt.count ] }
   end
 
+  it "generates language starters without import boilerplate" do
+    problem = Problem.find_by!(slug: "contains-duplicate")
+
+    expect(problem.starter_code_for("go")).to start_with("func containsDuplicate")
+    expect(problem.starter_code_for("go")).not_to include("package main", "import")
+    expect(problem.starter_code_for("cpp")).to start_with("class Solution")
+    expect(problem.starter_code_for("cpp")).not_to include("#include", "using namespace")
+  end
+
   it "keeps users unique and authenticates with a password hash" do
     user = create_user(email: "  LEARNER@example.com  ")
     expect(user.email).to eq("learner@example.com")

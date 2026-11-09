@@ -4,7 +4,7 @@ module LanguageSolutions
       "contains-duplicate" => <<~PYTHON,
         class Solution:
             def containsDuplicate(self, nums):
-                return len(nums) != len(set(nums))
+                return any(count > 1 for count in Counter(nums).values())
       PYTHON
       "reverse-linked-list" => <<~PYTHON
         class Solution:
@@ -20,15 +20,12 @@ module LanguageSolutions
     },
     "go" => {
       "contains-duplicate" => <<~GO,
-        package main
-
         func containsDuplicate(nums []int) bool {
-          seen := make(map[int]bool)
-          for _, value := range nums {
-            if seen[value] {
+          sort.Ints(nums)
+          for index := 1; index < len(nums); index++ {
+            if nums[index] == nums[index - 1] {
               return true
             }
-            seen[value] = true
           }
           return false
         }
@@ -50,10 +47,6 @@ module LanguageSolutions
     },
     "cpp" => {
       "contains-duplicate" => <<~CPP,
-        #include <unordered_set>
-        #include <vector>
-        using namespace std;
-
         class Solution {
         public:
           bool containsDuplicate(vector<int>& nums) {
