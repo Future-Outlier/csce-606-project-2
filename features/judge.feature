@@ -32,7 +32,7 @@ Feature: US7 — Online Judge & Error Recovery
     Given I am signed in as a "Free" member
     And the judge queue contains 9 Pending submissions
     When I submit a correct Ruby solution for "contains-duplicate"
-    Then I see a Pending result with 9 submissions ahead and an estimated wait of 383 seconds
+    Then I see a Pending result with 9 submissions ahead and an estimated wait of 545 seconds
 
   Scenario: Keep my code when the judge queue is full
     Given I am signed in as a "Free" member

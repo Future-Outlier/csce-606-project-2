@@ -52,7 +52,7 @@ module Judge
     end
 
     def remaining_seconds(attempt)
-      budget = [ attempt.total_cases, Problem::MINIMUM_TEST_CASES ].max * (DockerRunner::EXECUTION_TIMEOUT + DockerRunner::CLEANUP_TIMEOUT)
+      budget = Delayed::Worker.max_run_time.to_i
       elapsed = attempt.judging_started_at ? [ Time.current - attempt.judging_started_at, 0 ].max : 0
       [ budget - elapsed, Delayed::Worker.sleep_delay ].max
     end

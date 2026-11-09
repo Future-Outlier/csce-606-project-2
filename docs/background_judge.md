@@ -97,20 +97,17 @@ to retry submitting; it does not reserve a place for the rejected request.
 The source remains in that browser's form and is not saved in history.
 
 The estimate assumes one healthy worker. Each earlier submission contributes
-its case count times the four-second execution deadline plus three seconds
-for cleanup per case. Elapsed time since `judging_started_at` is subtracted,
-with a five-second minimum remaining estimate. One five-second worker poll
-interval is added. Rejection uses the first running or waiting submission's
-remaining estimate because its completion can free one slot.
+the one-minute job deadline. Elapsed time since `judging_started_at` is
+subtracted, with a five-second minimum remaining estimate. One five-second
+worker poll interval is added. Rejection uses the first running or waiting
+submission's remaining estimate because its completion can free one slot.
 
-For example, six cases contribute 42 seconds. A full queue whose first
-submission has not started suggests retrying in about 47 seconds. If it
-started ten seconds ago, the suggestion becomes about 37 seconds. A queued
-submission behind that one and another seven-case submission has an
-86-second estimated wait. These are conservative workload estimates, not
-measured completion predictions or guarantees. Docker delays, changed case
-data, worker downtime, and retries can extend the wait or change ordering.
-Refresh reads current state; no automatic submission or JavaScript is needed.
+For example, one unstarted job suggests 65 seconds. If it started ten seconds
+ago, the suggestion becomes 55 seconds. A submission behind that running job
+and one unstarted job shows 115 seconds; nine unstarted jobs ahead show 545
+seconds. These are conservative estimates, not completion-time guarantees.
+Worker downtime or delays can extend the wait. Refresh reads current state;
+no automatic submission or JavaScript is needed.
 
 The HTTP 503 status and `Retry-After` follow
 [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-503-service-unavailable).
