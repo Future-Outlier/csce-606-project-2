@@ -3,14 +3,59 @@ require "rails_helper"
 RSpec.describe Judge::HerokuDynoRunner do
   before { seed_judge }
 
+  around do |example|
+    previous_database_url = ENV["DATABASE_URL"]
+    previous_secret_key_base = ENV["SECRET_KEY_BASE"]
+    previous_judge_token = ENV["JUDGE_HEROKU_TOKEN"]
+    ENV["DATABASE_URL"] = "postgres://secret"
+    ENV["SECRET_KEY_BASE"] = "secret"
+    ENV["JUDGE_HEROKU_TOKEN"] = "platform-secret"
+    example.run
+  ensure
+    ENV["DATABASE_URL"] = previous_database_url
+    ENV["SECRET_KEY_BASE"] = previous_secret_key_base
+    ENV["JUDGE_HEROKU_TOKEN"] = previous_judge_token
+  end
+
   let(:problem) { Problem.find_by!(slug: "contains-duplicate") }
   let(:inputs) { problem.test_cases.order(:position).map(&:input) }
   let(:api) { instance_double(Judge::HerokuDynoRunner::Api) }
   let(:rendezvous) { instance_double(Judge::HerokuDynoRunner::Rendezvous) }
 
-  it "creates an attached worker dyno and sends source only over stdin" do
-    expect(api).to receive(:create_dyno).with(app: "codecoach-judge", token: "platform-secret")
-      .and_return("rendezvous://rendezvous.runtime.heroku.com:5000/attach-secret")
+  it "requests the judge process type with scrubbed config values" do
+    response = Struct.new(:code, :body)
+    api_class = Class.new(described_class::Api) do
+      attr_reader :request_body
+
+      define_method(:request) do |_uri, request|
+        @request_body = JSON.parse(request.body)
+        response.new("201", JSON.generate(attach_url: "rendezvous://example.test:5000/secret"))
+      end
+    end
+    client = api_class.new
+
+    client.create_dyno(app: "codecoach", token: "platform-secret", env: { "DATABASE_URL" => "" })
+
+    expect(client.request_body).to include(
+      "attach" => true,
+      "type" => "judge",
+      "env" => { "DATABASE_URL" => "" },
+      "time_to_live" => 60
+    )
+  end
+
+  it "creates an attached judge dyno and sends source only over stdin" do
+    expect(api).to receive(:create_dyno) do |app:, token:, env:|
+      expect(app).to eq("codecoach-judge")
+      expect(token).to eq("platform-secret")
+      expect(env).to include(
+        "DATABASE_URL" => "",
+        "JUDGE_HEROKU_TOKEN" => "",
+        "SECRET_KEY_BASE" => ""
+      )
+      expect(env.values).to all(eq(""))
+      "rendezvous://rendezvous.runtime.heroku.com:5000/attach-secret"
+    end
     expect(rendezvous).to receive(:call) do |url:, input:, timeout:|
       payload = JSON.parse(input)
       expect(url).to eq("rendezvous://rendezvous.runtime.heroku.com:5000/attach-secret")

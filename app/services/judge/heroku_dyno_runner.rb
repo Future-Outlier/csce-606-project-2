@@ -9,6 +9,8 @@ module Judge
   class HerokuDynoRunner
     PLATFORM_API = "https://api.heroku.com".freeze
     COMMAND = "55s ruby -rcoverage -e \"load '/judge/main.rb'\"".freeze
+    PROCESS_TYPE = "judge".freeze
+    SENSITIVE_ENV_PATTERN = /DATABASE|PASSWORD|SECRET|TOKEN|_KEY(?:_|\z)|_URL(?:_|\z)/i
     APP_PATTERN = /\A[a-z][a-z0-9-]{1,28}[a-z0-9]\z/.freeze
     OPEN_TIMEOUT = 5
     COMPILE_TIMEOUT = 15
@@ -22,7 +24,7 @@ module Judge
     class InvalidResponse < StandardError; end
 
     class Api
-      def create_dyno(app:, token:)
+      def create_dyno(app:, token:, env:)
         uri = URI("#{PLATFORM_API}/apps/#{app}/dynos")
         request = Net::HTTP::Post.new(uri.request_uri)
         request["Authorization"] = "Bearer #{token}"
@@ -31,10 +33,10 @@ module Judge
         request.body = JSON.generate(
           attach: true,
           command: COMMAND,
-          env: {},
+          env: env,
           force_no_tty: true,
           time_to_live: 60,
-          type: "worker"
+          type: PROCESS_TYPE
         )
         response = request(uri, request)
         raise InvalidResponse unless response.code.to_i == 201
@@ -129,7 +131,7 @@ module Judge
       return unavailable unless valid_configuration?
 
       payload = JSON.generate(Payload.build(code: code, language: language, problem: problem, inputs: inputs))
-      attach_url = @api.create_dyno(app: @app, token: @token)
+      attach_url = @api.create_dyno(app: @app, token: @token, env: scrubbed_environment)
       response = @rendezvous.call(url: attach_url, input: payload, timeout: timeout(inputs.length))
       result = JSON.parse(response)
       return unavailable unless valid_result?(result, language, inputs.length)
@@ -152,6 +154,12 @@ module Judge
         result["outputs"].is_a?(Array) &&
         result["outputs"].length <= input_count &&
         result["runtime"] == Attempt.language_version(language)
+    end
+
+    def scrubbed_environment
+      ENV.each_key.filter_map do |name|
+        [ name, "" ] if name.match?(SENSITIVE_ENV_PATTERN)
+      end.to_h
     end
 
     def timeout(input_count)
