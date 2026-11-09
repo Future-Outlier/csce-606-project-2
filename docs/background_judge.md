@@ -85,18 +85,9 @@ the remaining cases and preserve the number already passed. Finished
 Attempts are skipped on redelivery, and deleted Attempts are discarded.
 
 Queued jobs survive process restarts. A worker must be restarted to resume
-processing. A forcibly stopped job can be reserved again after its
-five-minute lock expires; its start timestamp is reset when it executes
-again. This provides retries rather than exactly-once execution. Transient
-database errors while loading an Attempt use Delayed Job's retry schedule.
-Repeated failures can exhaust Delayed Job's retries. Failed jobs are retained
-with `failed_at` and `last_error` for operator investigation rather than
-silently removed. They are not automatically executed again; a `Pending`
-Attempt continues to consume capacity until the failure is repaired. After
-repair, stop the worker and retry only the identified failed job by resetting
-its `attempts`, `failed_at`, `locked_at`, `locked_by`, and `run_at`, or mark its
-Attempt `Judge Unavailable` and remove that job. Do not delete jobs
-indiscriminately or reset locks while a worker may still be executing them.
+processing. Each job has a one-minute deadline; if it exceeds that deadline,
+container cleanup still runs, the Attempt records `Judge Unavailable`, and the
+completed job row is removed.
 
 ## Waiting and rejection
 
