@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_04_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_08_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -73,6 +73,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_180000) do
     t.string "coach_persona", default: "senior_swe", null: false
     t.datetime "review_scheduled_at"
     t.integer "review_base_interval_days"
+    t.string "interview_state", default: "not_started", null: false
     t.index ["problem_id"], name: "index_practice_sessions_on_problem_id"
     t.index ["user_id", "problem_id", "practice_date"], name: "index_practice_sessions_on_user_problem_date", unique: true
     t.index ["user_id"], name: "index_practice_sessions_on_user_id"
@@ -91,6 +92,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_180000) do
     t.text "starter_code", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "interview_prompt"
+    t.json "interview_details"
+    t.text "interview_twist"
     t.index ["slug"], name: "index_problems_on_slug", unique: true
     t.index ["topic_id"], name: "index_problems_on_topic_id"
   end
