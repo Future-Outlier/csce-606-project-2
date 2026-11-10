@@ -15,7 +15,7 @@
   <p><%= link_to "Practice as an interview", problem_interview_path(@problem), class: "button" %></p>
   <% end %>
   <% unless current_user.premium? %>
-  <p class="notice">Upgrade to Premium to use Socratic code coaching: explain your approach to a coach before you write code.</p>
+  <p class="notice">Upgrade to Premium to use Socratic code coaching: explain your approach to a coach before you write code. <%= link_to "Upgrade my account", account_path %></p>
   <% end %>
   <% if @coaching_session&.coaching_locked? %>
   <section class="editor-panel locked-editor" aria-labelledby="editor-title">
