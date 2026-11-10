@@ -43,7 +43,7 @@
   <% if @practice_session.interview_locked? %>
   <section class="editor-panel locked-editor" aria-labelledby="editor-title">
     <div class="panel-title"><h2 id="editor-title">Your solution</h2></div>
-    <p class="locked-note">The editor unlocks once you've adapted to the interviewer's change.</p>
+    <p class="locked-note">The editor unlocks once you and the interviewer agree on your approach.</p>
   </section>
   <% else %>
   <%= render "problems/editor", problem: @problem, attempt: @attempt %>
