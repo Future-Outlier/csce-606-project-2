@@ -172,7 +172,8 @@ heroku ps:scale web=1 queue=1 judge=0 --app "$APP"
 ### 5. Verify the release
 
 ```bash
-curl --fail "https://$APP.herokuapp.com/up"
+heroku apps:info --app "$APP"
+curl --fail "<Web URL from heroku apps:info>/up"
 heroku ps --app "$APP"
 heroku releases --app "$APP"
 ```
