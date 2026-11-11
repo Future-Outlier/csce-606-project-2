@@ -15,6 +15,8 @@ Feature: US7 — Online Judge & Error Recovery
     Given I am signed in as a "<role>" member
     And I have completed the prerequisites for "<slug>"
     When I submit a correct Ruby solution for "<slug>"
+    Then I first see a "Pending" result
+    When judging finishes
     Then I see an "Accepted" result with every predefined case passed
     And my submitted code is preserved in my personal history
     Examples:
@@ -29,6 +31,8 @@ Feature: US7 — Online Judge & Error Recovery
   Scenario Outline: Choose another supported language without JavaScript
     Given I am signed in as a "Free" member
     When I submit a correct "<language>" solution for "contains-duplicate"
+    Then I first see a "Pending" result
+    When judging finishes
     Then I see an "Accepted" result with every predefined case passed
     And the submission shows "<version>"
     Examples:
@@ -40,6 +44,8 @@ Feature: US7 — Online Judge & Error Recovery
   Scenario Outline: Show a concise compilation error
     Given I am signed in as a "Free" member
     When I submit invalid "<language>" syntax
+    Then I first see a "Pending" result
+    When judging finishes
     Then I see the "Compilation Error" verdict and a passed-case count
     And the page says that my code could not be compiled
     And compiler output is not displayed
@@ -50,9 +56,23 @@ Feature: US7 — Online Judge & Error Recovery
       | go       |
       | cpp      |
 
+  Scenario: Wait behind submissions already in the queue
+    Given I am signed in as a "Free" member
+    And the judge queue contains 9 Pending submissions
+    When I submit a correct Ruby solution for "contains-duplicate"
+    Then I see a Pending result with 9 submissions ahead and an estimated wait of 545 seconds
+
+  Scenario: Keep my code when the judge queue is full
+    Given I am signed in as a "Free" member
+    And the judge queue contains 10 Pending submissions
+    When I submit a correct Ruby solution for "contains-duplicate"
+    Then I am told when to retry without losing my code
+
   Scenario Outline: Recover from a Ruby submission failure
     Given I am signed in as a "Free" member
     When I submit a Ruby solution with "<failure>"
+    Then I first see a "Pending" result
+    When judging finishes
     Then I see the "<verdict>" verdict and a passed-case count
     And I can still open the problem and read my submitted code
     Examples:
@@ -82,6 +102,8 @@ Feature: US7 — Online Judge & Error Recovery
     Given I am signed in as a "Free" member
     And the remote judge cannot be reached
     When I submit a correct Ruby solution for "contains-duplicate"
+    Then I first see a "Pending" result
+    When judging finishes
     Then I see the "Judge Unavailable" verdict and a passed-case count
     And my submitted code is preserved in my personal history
 
@@ -89,12 +111,16 @@ Feature: US7 — Online Judge & Error Recovery
     Given I am signed in as a "Free" member
     And Heroku can create an isolated one-off judge dyno
     When I submit a correct "go" solution for "contains-duplicate"
+    Then I first see a "Pending" result
+    When judging finishes
     Then I see an "Accepted" result with every predefined case passed
     And the submission shows "Go 1.27.3"
 
   Scenario: Keep an empty Ruby submission in my history
     Given I am signed in as a "Free" member
     When I submit an empty Ruby solution
+    Then I first see a "Pending" result
+    When judging finishes
     Then I see the "Runtime Error" verdict and a passed-case count
     And the page explains that code is required
     And my submitted code is preserved in my personal history

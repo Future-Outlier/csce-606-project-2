@@ -27,6 +27,7 @@ module Judge
     OPEN_FILE_LIMIT = 64
     SUCCESS_STATUS = "ok".freeze
     VALID_STATUSES = [ SUCCESS_STATUS, Attempt::COMPILATION_ERROR, Attempt::RUNTIME_ERROR, Attempt::TIMEOUT ].freeze
+    UNAVAILABLE_MESSAGE = "The judge is unavailable. Your code was saved; please try again later.".freeze
 
     def initialize(command: Command.new, image: ENV.fetch("JUDGE_IMAGE", DEFAULT_IMAGE))
       @command = command
