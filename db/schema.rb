@@ -24,6 +24,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_000000) do
     t.text "error_message"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "judging_started_at"
+    t.index ["judge_result"], name: "index_attempts_on_judge_result"
     t.index ["practice_session_id"], name: "index_attempts_on_practice_session_id"
     t.check_constraint "language::text = 'ruby'::text", name: "attempts_ruby_only"
     t.check_constraint "passed_cases >= 0 AND total_cases >= passed_cases", name: "attempts_case_counts"
@@ -39,6 +41,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_000000) do
     t.string "phase", default: "coaching", null: false
     t.index ["attempt_id"], name: "index_conversation_messages_on_attempt_id"
     t.index ["practice_session_id"], name: "index_conversation_messages_on_practice_session_id"
+  end
+
+  create_table "delayed_jobs", force: :cascade do |t|
+    t.integer "priority", default: 0, null: false
+    t.integer "attempts", default: 0, null: false
+    t.text "handler", null: false
+    t.text "last_error"
+    t.datetime "run_at"
+    t.datetime "locked_at"
+    t.datetime "failed_at"
+    t.string "locked_by"
+    t.string "queue"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.index ["priority", "run_at"], name: "delayed_jobs_priority"
   end
 
   create_table "practice_sessions", force: :cascade do |t|
